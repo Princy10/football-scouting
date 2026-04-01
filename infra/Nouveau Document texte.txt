@@ -1,0 +1,5 @@
+docker compose down -v
+docker compose up -d
+docker ps
+docker logs football-scouting-postgres
+docker exec -e PGPASSWORD=scouting_pass -it football-scouting-postgres psql -h localhost -U scouting_user -d football_scouting -c "select current_user, current_database();"

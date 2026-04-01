@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: football-scouting-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: football_scouting
+      POSTGRES_USER: scouting_user
+      POSTGRES_PASSWORD: scouting_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

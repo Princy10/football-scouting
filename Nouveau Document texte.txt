@@ -1,0 +1,15 @@
+football-scouting/
+├── backend/        -> API Spring Boot
+├── infra/          -> Docker, base de données, variables d’environnement
+├── frontend/       -> React plus tard
+├── ai/             -> FastAPI plus tard
+├── docs/           -> documentation du projet
+└── README.md
+
+
+http://localhost:8080/swagger-ui/index.html
+
+http://localhost:8080/actuator
+http://localhost:8080/actuator/health
+http://localhost:8080/actuator/metrics
+http://localhost:8080/actuator/prometheus
