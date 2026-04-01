@@ -3,9 +3,9 @@ spring:
     name: football-scouting-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/football_scouting
-    username: scouting_user
-    password: scouting_pass
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/football_scouting}
+    username: ${SPRING_DATASOURCE_USERNAME:scouting_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:scouting_pass}
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -36,6 +36,6 @@ management:
   endpoint:
     health:
       show-details: always
-      
+
 server:
   port: 8080

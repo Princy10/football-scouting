@@ -4,4 +4,4 @@ target/
 *.temp
 *.log
 .env
-.txt*
+*.txt
