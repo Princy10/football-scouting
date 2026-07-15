@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -102,6 +103,36 @@ class ClubControllerIntegrationTest {
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value("Club introuvable avec l'id : 99999"))
                 .andExpect(jsonPath("$.path").value("/api/clubs/99999"));
+    }
+
+    @Test
+    void getAllClubs_shouldReturnClubs() throws Exception {
+        clubRepository.save(Club.builder().nom("Ajesaia").pays("Madagascar").build());
+        clubRepository.save(Club.builder().nom("Elgeco Plus").pays("Madagascar").build());
+
+        mockMvc.perform(get("/api/clubs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void updateClub_shouldReturnUpdatedClub() throws Exception {
+        Club savedClub = clubRepository.save(
+                Club.builder().nom("Ajesaia").pays("Madagascar").division("D1").build()
+        );
+        ClubRequest request = ClubRequest.builder()
+                .nom("Ajesaia FC")
+                .pays("Madagascar")
+                .ville("Antananarivo")
+                .division("D1 Elite")
+                .build();
+
+        mockMvc.perform(put("/api/clubs/{id}", savedClub.getId())
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nom").value("Ajesaia FC"))
+                .andExpect(jsonPath("$.division").value("D1 Elite"));
     }
 
     @Test

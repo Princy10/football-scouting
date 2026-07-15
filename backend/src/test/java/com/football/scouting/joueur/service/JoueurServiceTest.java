@@ -1,0 +1,177 @@
+package com.football.scouting.joueur.service;
+
+import com.football.scouting.club.entity.Club;
+import com.football.scouting.club.repository.ClubRepository;
+import com.football.scouting.common.exception.ResourceNotFoundException;
+import com.football.scouting.joueur.dto.JoueurRequest;
+import com.football.scouting.joueur.dto.JoueurResponse;
+import com.football.scouting.joueur.entity.Joueur;
+import com.football.scouting.joueur.repository.JoueurRepository;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class JoueurServiceTest {
+
+    @Mock
+    private JoueurRepository joueurRepository;
+
+    @Mock
+    private ClubRepository clubRepository;
+
+    @InjectMocks
+    private JoueurService joueurService;
+
+    @Test
+    void createJoueur_shouldCreateAndReturnResponse_withClub() {
+        Club club = club(1L);
+        JoueurRequest request = request(1L);
+        Joueur savedJoueur = joueur(10L, club);
+
+        when(clubRepository.findById(1L)).thenReturn(Optional.of(club));
+        when(joueurRepository.save(any(Joueur.class))).thenReturn(savedJoueur);
+
+        JoueurResponse response = joueurService.createJoueur(request);
+
+        assertNotNull(response);
+        assertEquals(10L, response.getId());
+        assertEquals("Rakoto", response.getNom());
+        assertEquals("Milieu", response.getPostePrincipal());
+        assertEquals(1L, response.getClubId());
+        verify(clubRepository).findById(1L);
+        verify(joueurRepository).save(any(Joueur.class));
+    }
+
+    @Test
+    void createJoueur_shouldCreateJoueur_withoutClub() {
+        JoueurRequest request = request(null);
+        Joueur savedJoueur = joueur(10L, null);
+        when(joueurRepository.save(any(Joueur.class))).thenReturn(savedJoueur);
+
+        JoueurResponse response = joueurService.createJoueur(request);
+
+        assertNull(response.getClubId());
+        verify(joueurRepository).save(any(Joueur.class));
+    }
+
+    @Test
+    void createJoueur_shouldThrowException_whenClubDoesNotExist() {
+        when(clubRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> joueurService.createJoueur(request(99L))
+        );
+
+        assertEquals("Club introuvable avec l'id : 99", exception.getMessage());
+    }
+
+    @Test
+    void getAllJoueurs_shouldReturnResponses() {
+        when(joueurRepository.findAll()).thenReturn(List.of(joueur(1L, null), joueur(2L, club(3L))));
+
+        List<JoueurResponse> responses = joueurService.getAllJoueurs();
+
+        assertEquals(2, responses.size());
+        assertNull(responses.get(0).getClubId());
+        assertEquals(3L, responses.get(1).getClubId());
+    }
+
+    @Test
+    void getJoueurById_shouldReturnResponse_whenJoueurExists() {
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(joueur(1L, null)));
+
+        JoueurResponse response = joueurService.getJoueurById(1L);
+
+        assertEquals(1L, response.getId());
+        assertEquals("Rakoto", response.getNom());
+    }
+
+    @Test
+    void getJoueurById_shouldThrowException_whenJoueurDoesNotExist() {
+        when(joueurRepository.findById(99L)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> joueurService.getJoueurById(99L)
+        );
+
+        assertEquals("Joueur introuvable avec l'id : 99", exception.getMessage());
+    }
+
+    @Test
+    void updateJoueur_shouldUpdateAndReturnResponse() {
+        Joueur existing = joueur(1L, null);
+        Club club = club(2L);
+        JoueurRequest request = request(2L);
+        request.setNom("Rakotoarisoa");
+
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(clubRepository.findById(2L)).thenReturn(Optional.of(club));
+        when(joueurRepository.save(existing)).thenReturn(existing);
+
+        JoueurResponse response = joueurService.updateJoueur(1L, request);
+
+        assertEquals("Rakotoarisoa", response.getNom());
+        assertEquals(2L, response.getClubId());
+        verify(joueurRepository).save(existing);
+    }
+
+    @Test
+    void deleteJoueur_shouldDeleteJoueur_whenJoueurExists() {
+        Joueur existing = joueur(1L, null);
+        when(joueurRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        joueurService.deleteJoueur(1L);
+
+        verify(joueurRepository).delete(existing);
+    }
+
+    private JoueurRequest request(Long clubId) {
+        return JoueurRequest.builder()
+                .nom("Rakoto")
+                .prenom("Jean")
+                .dateNaissance(LocalDate.of(2000, 1, 15))
+                .nationalite("Malagasy")
+                .postePrincipal("Milieu")
+                .piedFort("Droit")
+                .taille(178)
+                .poids(72)
+                .clubId(clubId)
+                .build();
+    }
+
+    private Joueur joueur(Long id, Club club) {
+        return Joueur.builder()
+                .id(id)
+                .nom("Rakoto")
+                .prenom("Jean")
+                .dateNaissance(LocalDate.of(2000, 1, 15))
+                .nationalite("Malagasy")
+                .postePrincipal("Milieu")
+                .piedFort("Droit")
+                .taille(178)
+                .poids(72)
+                .club(club)
+                .build();
+    }
+
+    private Club club(Long id) {
+        return Club.builder().id(id).nom("Ajesaia").pays("Madagascar").build();
+    }
+}
