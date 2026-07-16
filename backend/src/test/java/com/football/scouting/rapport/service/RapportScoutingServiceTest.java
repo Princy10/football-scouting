@@ -70,17 +70,23 @@ class RapportScoutingServiceTest {
 
     @Test
     void getAllRapports_shouldReturnResponses() {
-        when(rapportScoutingRepository.findAll()).thenReturn(List.of(
+        when(
+                rapportScoutingRepository.findAllByOrderByCreatedAtDesc()
+        ).thenReturn(List.of(
                 rapport(1L, joueur(10L)),
                 rapport(2L, joueur(20L))
         ));
 
-        List<RapportScoutingResponse> responses = rapportScoutingService.getAllRapports();
+        List<RapportScoutingResponse> responses =
+                rapportScoutingService.getAllRapports();
 
         assertEquals(2, responses.size());
         assertEquals(10L, responses.get(0).getJoueurId());
         assertEquals(20L, responses.get(1).getJoueurId());
-        verify(rapportScoutingRepository).findAll();
+
+        verify(
+                rapportScoutingRepository
+        ).findAllByOrderByCreatedAtDesc();
     }
 
     @Test
