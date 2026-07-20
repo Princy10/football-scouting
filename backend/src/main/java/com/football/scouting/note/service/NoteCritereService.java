@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -33,8 +34,14 @@ public class NoteCritereService {
                 .noteSur100(request.getNoteSur100())
                 .build();
 
+        /*
+         * saveAndFlush permet d'envoyer immédiatement la note
+         * dans PostgreSQL avant de calculer la moyenne.
+         */
         NoteCritere savedNote =
-                noteCritereRepository.save(noteCritere);
+                noteCritereRepository.saveAndFlush(noteCritere);
+
+        recalculateScoreGlobal(rapport);
 
         return mapToResponse(savedNote);
     }
@@ -50,9 +57,7 @@ public class NoteCritereService {
 
     @Transactional(readOnly = true)
     public NoteCritereResponse getNoteById(Long id) {
-        NoteCritere noteCritere = findNoteById(id);
-
-        return mapToResponse(noteCritere);
+        return mapToResponse(findNoteById(id));
     }
 
     @Transactional(readOnly = true)
@@ -74,15 +79,31 @@ public class NoteCritereService {
     ) {
         NoteCritere noteCritere = findNoteById(id);
 
-        RapportScouting rapport =
+        RapportScouting ancienRapport =
+                noteCritere.getRapport();
+
+        RapportScouting nouveauRapport =
                 findRapportById(request.getRapportId());
 
-        noteCritere.setRapport(rapport);
+        noteCritere.setRapport(nouveauRapport);
         noteCritere.setCritere(request.getCritere());
         noteCritere.setNoteSur100(request.getNoteSur100());
 
         NoteCritere updatedNote =
-                noteCritereRepository.save(noteCritere);
+                noteCritereRepository.saveAndFlush(noteCritere);
+
+        /*
+         * Si la note a été transférée vers un autre rapport,
+         * il faut recalculer l'ancien rapport.
+         */
+        if (!Objects.equals(
+                ancienRapport.getId(),
+                nouveauRapport.getId()
+        )) {
+            recalculateScoreGlobal(ancienRapport);
+        }
+
+        recalculateScoreGlobal(nouveauRapport);
 
         return mapToResponse(updatedNote);
     }
@@ -90,7 +111,37 @@ public class NoteCritereService {
     public void deleteNote(Long id) {
         NoteCritere noteCritere = findNoteById(id);
 
+        RapportScouting rapport =
+                noteCritere.getRapport();
+
         noteCritereRepository.delete(noteCritere);
+
+        /*
+         * Force l'exécution du DELETE avant le calcul AVG.
+         */
+        noteCritereRepository.flush();
+
+        recalculateScoreGlobal(rapport);
+    }
+
+    private void recalculateScoreGlobal(
+            RapportScouting rapport
+    ) {
+        Double moyenne =
+                noteCritereRepository
+                        .calculateAverageByRapportId(
+                                rapport.getId()
+                        );
+
+        if (moyenne == null) {
+            rapport.setScoreGlobal(null);
+        } else {
+            rapport.setScoreGlobal(
+                    (int) Math.round(moyenne)
+            );
+        }
+
+        rapportScoutingRepository.save(rapport);
     }
 
     private NoteCritere findNoteById(Long id) {
@@ -121,7 +172,9 @@ public class NoteCritereService {
     ) {
         return NoteCritereResponse.builder()
                 .id(noteCritere.getId())
-                .rapportId(noteCritere.getRapport().getId())
+                .rapportId(
+                        noteCritere.getRapport().getId()
+                )
                 .critere(noteCritere.getCritere())
                 .noteSur100(noteCritere.getNoteSur100())
                 .build();

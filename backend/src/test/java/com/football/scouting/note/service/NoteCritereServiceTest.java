@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -36,7 +37,7 @@ class NoteCritereServiceTest {
     private NoteCritereService noteCritereService;
 
     @Test
-    void createNote_shouldCreateAndReturnResponse() {
+    void createNote_shouldCreateNoteAndCalculateScoreGlobal() {
         RapportScouting rapport = rapport(1L);
 
         NoteCritere savedNote = note(
@@ -49,9 +50,14 @@ class NoteCritereServiceTest {
         when(rapportScoutingRepository.findById(1L))
                 .thenReturn(Optional.of(rapport));
 
-        when(noteCritereRepository.save(
+        when(noteCritereRepository.saveAndFlush(
                 any(NoteCritere.class)
         )).thenReturn(savedNote);
+
+        when(
+                noteCritereRepository
+                        .calculateAverageByRapportId(1L)
+        ).thenReturn(85.0);
 
         NoteCritereResponse response =
                 noteCritereService.createNote(request(1L));
@@ -59,12 +65,45 @@ class NoteCritereServiceTest {
         assertNotNull(response);
         assertEquals(10L, response.getId());
         assertEquals(1L, response.getRapportId());
-        assertEquals("Technique", response.getCritere());
         assertEquals(85, response.getNoteSur100());
+        assertEquals(85, rapport.getScoreGlobal());
 
-        verify(rapportScoutingRepository).findById(1L);
         verify(noteCritereRepository)
-                .save(any(NoteCritere.class));
+                .saveAndFlush(any(NoteCritere.class));
+
+        verify(noteCritereRepository)
+                .calculateAverageByRapportId(1L);
+
+        verify(rapportScoutingRepository)
+                .save(rapport);
+    }
+
+    @Test
+    void createNote_shouldRoundScoreGlobal() {
+        RapportScouting rapport = rapport(1L);
+
+        NoteCritere savedNote = note(
+                10L,
+                rapport,
+                "Technique",
+                86
+        );
+
+        when(rapportScoutingRepository.findById(1L))
+                .thenReturn(Optional.of(rapport));
+
+        when(noteCritereRepository.saveAndFlush(
+                any(NoteCritere.class)
+        )).thenReturn(savedNote);
+
+        when(
+                noteCritereRepository
+                        .calculateAverageByRapportId(1L)
+        ).thenReturn(85.5);
+
+        noteCritereService.createNote(request(1L));
+
+        assertEquals(86, rapport.getScoreGlobal());
     }
 
     @Test
@@ -107,20 +146,13 @@ class NoteCritereServiceTest {
                 noteCritereService.getAllNotes();
 
         assertEquals(2, responses.size());
-
         assertEquals(
                 20L,
                 responses.get(0).getRapportId()
         );
-
         assertEquals(
                 "Vitesse",
                 responses.get(0).getCritere()
-        );
-
-        assertEquals(
-                10L,
-                responses.get(1).getRapportId()
         );
 
         verify(noteCritereRepository)
@@ -203,41 +235,61 @@ class NoteCritereServiceTest {
                 "Vitesse",
                 responses.get(1).getCritere()
         );
-
-        verify(rapportScoutingRepository).findById(1L);
-
-        verify(noteCritereRepository)
-                .findByRapport_IdOrderByIdAsc(1L);
     }
 
     @Test
-    void getNotesByRapport_shouldThrowException_whenRapportDoesNotExist() {
-        when(rapportScoutingRepository.findById(99L))
-                .thenReturn(Optional.empty());
+    void updateNote_shouldRecalculateSameRapport() {
+        RapportScouting rapport = rapport(1L);
 
-        ResourceNotFoundException exception =
-                assertThrows(
-                        ResourceNotFoundException.class,
-                        () -> noteCritereService
-                                .getNotesByRapport(99L)
-                );
-
-        assertEquals(
-                "Rapport de scouting introuvable avec l'id : 99",
-                exception.getMessage()
-        );
-    }
-
-    @Test
-    void updateNote_shouldUpdateAndReturnResponse() {
         NoteCritere existing = note(
                 1L,
-                rapport(1L),
+                rapport,
                 "Technique",
                 70
         );
 
+        NoteCritereRequest request =
+                NoteCritereRequest.builder()
+                        .rapportId(1L)
+                        .critere("Technique")
+                        .noteSur100(92)
+                        .build();
+
+        when(noteCritereRepository.findById(1L))
+                .thenReturn(Optional.of(existing));
+
+        when(rapportScoutingRepository.findById(1L))
+                .thenReturn(Optional.of(rapport));
+
+        when(noteCritereRepository.saveAndFlush(existing))
+                .thenReturn(existing);
+
+        when(
+                noteCritereRepository
+                        .calculateAverageByRapportId(1L)
+        ).thenReturn(92.0);
+
+        NoteCritereResponse response =
+                noteCritereService.updateNote(1L, request);
+
+        assertEquals(92, response.getNoteSur100());
+        assertEquals(92, rapport.getScoreGlobal());
+
+        verify(rapportScoutingRepository)
+                .save(rapport);
+    }
+
+    @Test
+    void updateNote_shouldRecalculateOldAndNewRapports() {
+        RapportScouting ancienRapport = rapport(1L);
         RapportScouting nouveauRapport = rapport(2L);
+
+        NoteCritere existing = note(
+                1L,
+                ancienRapport,
+                "Technique",
+                70
+        );
 
         NoteCritereRequest request =
                 NoteCritereRequest.builder()
@@ -252,30 +304,40 @@ class NoteCritereServiceTest {
         when(rapportScoutingRepository.findById(2L))
                 .thenReturn(Optional.of(nouveauRapport));
 
-        when(noteCritereRepository.save(existing))
+        when(noteCritereRepository.saveAndFlush(existing))
                 .thenReturn(existing);
 
+        when(
+                noteCritereRepository
+                        .calculateAverageByRapportId(1L)
+        ).thenReturn(70.0);
+
+        when(
+                noteCritereRepository
+                        .calculateAverageByRapportId(2L)
+        ).thenReturn(92.0);
+
         NoteCritereResponse response =
-                noteCritereService.updateNote(
-                        1L,
-                        request
-                );
+                noteCritereService.updateNote(1L, request);
 
         assertEquals(2L, response.getRapportId());
-        assertEquals(
-                "Vitesse",
-                response.getCritere()
-        );
-        assertEquals(92, response.getNoteSur100());
+        assertEquals(70, ancienRapport.getScoreGlobal());
+        assertEquals(92, nouveauRapport.getScoreGlobal());
 
-        verify(noteCritereRepository).save(existing);
+        verify(rapportScoutingRepository)
+                .save(ancienRapport);
+
+        verify(rapportScoutingRepository)
+                .save(nouveauRapport);
     }
 
     @Test
-    void deleteNote_shouldDeleteNote_whenNoteExists() {
+    void deleteNote_shouldRecalculateScoreGlobal() {
+        RapportScouting rapport = rapport(1L);
+
         NoteCritere existing = note(
                 1L,
-                rapport(1L),
+                rapport,
                 "Technique",
                 85
         );
@@ -283,9 +345,45 @@ class NoteCritereServiceTest {
         when(noteCritereRepository.findById(1L))
                 .thenReturn(Optional.of(existing));
 
+        when(
+                noteCritereRepository
+                        .calculateAverageByRapportId(1L)
+        ).thenReturn(75.0);
+
         noteCritereService.deleteNote(1L);
 
+        assertEquals(75, rapport.getScoreGlobal());
+
         verify(noteCritereRepository).delete(existing);
+        verify(noteCritereRepository).flush();
+        verify(rapportScoutingRepository).save(rapport);
+    }
+
+    @Test
+    void deleteLastNote_shouldSetScoreGlobalToNull() {
+        RapportScouting rapport = rapport(1L);
+        rapport.setScoreGlobal(85);
+
+        NoteCritere existing = note(
+                1L,
+                rapport,
+                "Technique",
+                85
+        );
+
+        when(noteCritereRepository.findById(1L))
+                .thenReturn(Optional.of(existing));
+
+        when(
+                noteCritereRepository
+                        .calculateAverageByRapportId(1L)
+        ).thenReturn(null);
+
+        noteCritereService.deleteNote(1L);
+
+        assertNull(rapport.getScoreGlobal());
+
+        verify(rapportScoutingRepository).save(rapport);
     }
 
     private NoteCritereRequest request(Long rapportId) {

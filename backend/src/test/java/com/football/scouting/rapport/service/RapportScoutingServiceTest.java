@@ -118,7 +118,6 @@ class RapportScoutingServiceTest {
         Joueur nouveauJoueur = joueur(2L);
         RapportScoutingRequest request = request(2L);
         request.setRecommandation("À recruter");
-        request.setScoreGlobal(90);
 
         when(rapportScoutingRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(joueurRepository.findById(2L)).thenReturn(Optional.of(nouveauJoueur));
@@ -128,7 +127,7 @@ class RapportScoutingServiceTest {
 
         assertEquals(2L, response.getJoueurId());
         assertEquals("À recruter", response.getRecommandation());
-        assertEquals(90, response.getScoreGlobal());
+        assertEquals(82, response.getScoreGlobal());
         verify(rapportScoutingRepository).save(existing);
     }
 
@@ -149,7 +148,6 @@ class RapportScoutingServiceTest {
                 .matchObserve("Ajesaia - Elgeco Plus")
                 .commentaireGeneral("Bonne vision du jeu et excellente qualité de passe.")
                 .recommandation("À suivre")
-                .scoreGlobal(82)
                 .scoutName("Jean Scout")
                 .build();
     }

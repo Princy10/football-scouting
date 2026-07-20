@@ -32,7 +32,6 @@ public class RapportScoutingService {
                 .matchObserve(request.getMatchObserve())
                 .commentaireGeneral(request.getCommentaireGeneral())
                 .recommandation(request.getRecommandation())
-                .scoreGlobal(request.getScoreGlobal())
                 .scoutName(request.getScoutName())
                 .build();
 
@@ -85,7 +84,6 @@ public class RapportScoutingService {
                 request.getCommentaireGeneral()
         );
         rapport.setRecommandation(request.getRecommandation());
-        rapport.setScoreGlobal(request.getScoreGlobal());
         rapport.setScoutName(request.getScoutName());
 
         RapportScouting updatedRapport =

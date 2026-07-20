@@ -1,7 +1,14 @@
 package com.football.scouting.rapport.dto;
 
-import jakarta.validation.constraints.*;
-import lombok.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDate;
 
@@ -12,12 +19,20 @@ import java.time.LocalDate;
 @Builder
 public class RapportScoutingRequest {
 
-    @NotNull(message = "L'identifiant du joueur est obligatoire.")
-    @Positive(message = "L'identifiant du joueur doit être supérieur à zéro.")
+    @NotNull(
+            message = "L'identifiant du joueur est obligatoire."
+    )
+    @Positive(
+            message = "L'identifiant du joueur doit être supérieur à zéro."
+    )
     private Long joueurId;
 
-    @NotNull(message = "La date d'observation est obligatoire.")
-    @PastOrPresent(message = "La date d'observation ne peut pas être dans le futur.")
+    @NotNull(
+            message = "La date d'observation est obligatoire."
+    )
+    @PastOrPresent(
+            message = "La date d'observation ne peut pas être dans le futur."
+    )
     private LocalDate dateObservation;
 
     @Size(
@@ -33,16 +48,6 @@ public class RapportScoutingRequest {
             message = "La recommandation ne doit pas dépasser 100 caractères."
     )
     private String recommandation;
-
-    @Min(
-            value = 0,
-            message = "Le score global doit être supérieur ou égal à 0."
-    )
-    @Max(
-            value = 100,
-            message = "Le score global doit être inférieur ou égal à 100."
-    )
-    private Integer scoreGlobal;
 
     @Size(
             max = 150,

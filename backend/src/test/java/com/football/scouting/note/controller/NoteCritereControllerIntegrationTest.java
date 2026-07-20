@@ -30,6 +30,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -446,9 +448,221 @@ class NoteCritereControllerIntegrationTest {
                                 "Bonne vision du jeu."
                         )
                         .recommandation("À suivre")
-                        .scoreGlobal(82)
                         .scoutName("Jean Scout")
                         .build()
         );
+    }
+
+    @Test
+    void createNote_shouldCalculateScoreGlobal()
+            throws Exception {
+
+        RapportScouting rapport = saveRapport();
+
+        mockMvc.perform(
+                        post("/api/notes")
+                                .contentType("application/json")
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                NoteCritereRequest.builder()
+                                                        .rapportId(
+                                                                rapport.getId()
+                                                        )
+                                                        .critere("Technique")
+                                                        .noteSur100(80)
+                                                        .build()
+                                        )
+                                )
+                )
+                .andExpect(status().isCreated());
+
+        RapportScouting updatedRapport =
+                rapportScoutingRepository
+                        .findById(rapport.getId())
+                        .orElseThrow();
+
+        assertEquals(
+                80,
+                updatedRapport.getScoreGlobal()
+        );
+    }
+
+    @Test
+    void createSecondNote_shouldCalculateRoundedAverage()
+            throws Exception {
+
+        RapportScouting rapport = saveRapport();
+
+        noteCritereRepository.save(
+                NoteCritere.builder()
+                        .rapport(rapport)
+                        .critere("Technique")
+                        .noteSur100(80)
+                        .build()
+        );
+
+        mockMvc.perform(
+                        post("/api/notes")
+                                .contentType("application/json")
+                                .content(
+                                        objectMapper.writeValueAsString(
+                                                NoteCritereRequest.builder()
+                                                        .rapportId(
+                                                                rapport.getId()
+                                                        )
+                                                        .critere("Vitesse")
+                                                        .noteSur100(91)
+                                                        .build()
+                                        )
+                                )
+                )
+                .andExpect(status().isCreated());
+
+        /*
+         * (80 + 91) / 2 = 85.5
+         * Math.round donne 86.
+         */
+        RapportScouting updatedRapport =
+                rapportScoutingRepository
+                        .findById(rapport.getId())
+                        .orElseThrow();
+
+        assertEquals(
+                86,
+                updatedRapport.getScoreGlobal()
+        );
+    }
+
+    @Test
+    void updateNote_shouldRecalculateScoreGlobal()
+            throws Exception {
+
+        RapportScouting rapport = saveRapport();
+
+        NoteCritere premiereNote =
+                noteCritereRepository.save(
+                        NoteCritere.builder()
+                                .rapport(rapport)
+                                .critere("Technique")
+                                .noteSur100(60)
+                                .build()
+                );
+
+        noteCritereRepository.save(
+                NoteCritere.builder()
+                        .rapport(rapport)
+                        .critere("Vitesse")
+                        .noteSur100(80)
+                        .build()
+        );
+
+        NoteCritereRequest request =
+                NoteCritereRequest.builder()
+                        .rapportId(rapport.getId())
+                        .critere("Technique")
+                        .noteSur100(100)
+                        .build();
+
+        mockMvc.perform(
+                        put(
+                                "/api/notes/{id}",
+                                premiereNote.getId()
+                        )
+                                .contentType("application/json")
+                                .content(
+                                        objectMapper
+                                                .writeValueAsString(request)
+                                )
+                )
+                .andExpect(status().isOk());
+
+        /*
+         * (100 + 80) / 2 = 90.
+         */
+        RapportScouting updatedRapport =
+                rapportScoutingRepository
+                        .findById(rapport.getId())
+                        .orElseThrow();
+
+        assertEquals(
+                90,
+                updatedRapport.getScoreGlobal()
+        );
+    }
+
+    @Test
+    void deleteNote_shouldRecalculateScoreGlobal()
+            throws Exception {
+
+        RapportScouting rapport = saveRapport();
+
+        noteCritereRepository.save(
+                NoteCritere.builder()
+                        .rapport(rapport)
+                        .critere("Technique")
+                        .noteSur100(70)
+                        .build()
+        );
+
+        NoteCritere noteToDelete =
+                noteCritereRepository.save(
+                        NoteCritere.builder()
+                                .rapport(rapport)
+                                .critere("Vitesse")
+                                .noteSur100(90)
+                                .build()
+                );
+
+        mockMvc.perform(
+                        delete(
+                                "/api/notes/{id}",
+                                noteToDelete.getId()
+                        )
+                )
+                .andExpect(status().isNoContent());
+
+        RapportScouting updatedRapport =
+                rapportScoutingRepository
+                        .findById(rapport.getId())
+                        .orElseThrow();
+
+        assertEquals(
+                70,
+                updatedRapport.getScoreGlobal()
+        );
+    }
+
+    @Test
+    void deleteLastNote_shouldSetScoreGlobalToNull()
+            throws Exception {
+
+        RapportScouting rapport = saveRapport();
+
+        NoteCritere note =
+                noteCritereRepository.save(
+                        NoteCritere.builder()
+                                .rapport(rapport)
+                                .critere("Technique")
+                                .noteSur100(85)
+                                .build()
+                );
+
+        rapport.setScoreGlobal(85);
+        rapportScoutingRepository.save(rapport);
+
+        mockMvc.perform(
+                        delete(
+                                "/api/notes/{id}",
+                                note.getId()
+                        )
+                )
+                .andExpect(status().isNoContent());
+
+        RapportScouting updatedRapport =
+                rapportScoutingRepository
+                        .findById(rapport.getId())
+                        .orElseThrow();
+
+        assertNull(updatedRapport.getScoreGlobal());
     }
 }

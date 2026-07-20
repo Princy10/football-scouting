@@ -78,7 +78,7 @@ class RapportScoutingControllerIntegrationTest {
                 .andExpect(jsonPath("$.joueurId").value(joueur.getId()))
                 .andExpect(jsonPath("$.dateObservation").value("2026-07-15"))
                 .andExpect(jsonPath("$.matchObserve").value("Ajesaia - Elgeco Plus"))
-                .andExpect(jsonPath("$.scoreGlobal").value(82));
+                .andExpect(jsonPath("$.scoreGlobal").isEmpty());
     }
 
     @Test
@@ -105,14 +105,13 @@ class RapportScoutingControllerIntegrationTest {
         RapportScouting saved = rapportScoutingRepository.save(rapport(saveJoueur()));
         RapportScoutingRequest request = request(saved.getJoueur().getId());
         request.setRecommandation("À recruter");
-        request.setScoreGlobal(90);
 
         mockMvc.perform(put("/api/rapports/{id}", saved.getId())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.recommandation").value("À recruter"))
-                .andExpect(jsonPath("$.scoreGlobal").value(90));
+                .andExpect(jsonPath("$.scoreGlobal").isEmpty());
     }
 
     @Test
@@ -144,15 +143,13 @@ class RapportScoutingControllerIntegrationTest {
     void createRapport_shouldReturn400_whenValidationFails() throws Exception {
         RapportScoutingRequest request = request(null);
         request.setDateObservation(null);
-        request.setScoreGlobal(101);
 
         mockMvc.perform(post("/api/rapports")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.validationErrors", hasKey("joueurId")))
-                .andExpect(jsonPath("$.validationErrors", hasKey("dateObservation")))
-                .andExpect(jsonPath("$.validationErrors", hasKey("scoreGlobal")));
+                .andExpect(jsonPath("$.validationErrors", hasKey("dateObservation")));
     }
 
     private RapportScoutingRequest request(Long joueurId) {
@@ -162,7 +159,6 @@ class RapportScoutingControllerIntegrationTest {
                 .matchObserve("Ajesaia - Elgeco Plus")
                 .commentaireGeneral("Bonne vision du jeu et excellente qualité de passe.")
                 .recommandation("À suivre")
-                .scoreGlobal(82)
                 .scoutName("Jean Scout")
                 .build();
     }
@@ -174,7 +170,6 @@ class RapportScoutingControllerIntegrationTest {
                 .matchObserve("Ajesaia - Elgeco Plus")
                 .commentaireGeneral("Bonne vision du jeu et excellente qualité de passe.")
                 .recommandation("À suivre")
-                .scoreGlobal(82)
                 .scoutName("Jean Scout")
                 .build();
     }
