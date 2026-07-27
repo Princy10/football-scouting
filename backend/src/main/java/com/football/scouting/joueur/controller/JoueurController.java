@@ -49,11 +49,19 @@ public class JoueurController {
             int page,
 
             @RequestParam(defaultValue = "10")
-            int size
+            int size,
+
+            @RequestParam(defaultValue = "nom")
+            String sortBy,
+
+            @RequestParam(defaultValue = "asc")
+            String direction
     ) {
         return joueurService.getAllJoueurs(
                 page,
-                size
+                size,
+                sortBy,
+                direction
         );
     }
 

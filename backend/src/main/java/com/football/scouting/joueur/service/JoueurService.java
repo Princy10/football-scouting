@@ -43,18 +43,43 @@ public class JoueurService {
         );
     }
 
+    private String resolveSortProperty(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "nom";
+        }
+
+        return switch (sortBy) {
+            case "id" -> "id";
+            case "nom" -> "nom";
+            case "prenom" -> "prenom";
+            case "dateNaissance" -> "dateNaissance";
+            case "nationalite" -> "nationalite";
+            case "postePrincipal" -> "postePrincipal";
+            case "piedFort" -> "piedFort";
+            case "taille" -> "taille";
+            case "poids" -> "poids";
+            default -> "nom";
+        };
+    }
+    
     @Transactional(readOnly = true)
     public PageResponse<JoueurResponse> getAllJoueurs(
             int page,
-            int size
+            int size,
+            String sortBy,
+            String direction
     ) {
+        String sortProperty = resolveSortProperty(sortBy);
+
+        Sort.Direction sortDirection =
+                "desc".equalsIgnoreCase(direction)
+                        ? Sort.Direction.DESC
+                        : Sort.Direction.ASC;
+
         PageRequest pageRequest = PageRequest.of(
                 page,
                 size,
-                Sort.by(
-                        Sort.Order.asc("nom"),
-                        Sort.Order.asc("prenom")
-                )
+                Sort.by(sortDirection, sortProperty)
         );
 
         Page<JoueurResponse> responsePage =

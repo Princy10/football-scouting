@@ -136,6 +136,43 @@ class JoueurControllerIntegrationTest {
     }
 
     @Test
+    void getAllJoueurs_shouldSortPlayersByNameDescending()
+            throws Exception {
+
+        Joueur premier = joueur(null);
+        premier.setNom("Mbappé");
+        premier.setPrenom("Kylian");
+
+        Joueur deuxieme = joueur(null);
+        deuxieme.setNom("Wirtz");
+        deuxieme.setPrenom("Florian");
+
+        joueurRepository.save(premier);
+        joueurRepository.save(deuxieme);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "nom")
+                                .param("direction", "desc")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Wirtz")
+                )
+                .andExpect(
+                        jsonPath("$.content[1].nom")
+                                .value("Mbappé")
+                );
+    }
+
+    @Test
     void getJoueurById_shouldReturnJoueur_whenExists() throws Exception {
         Joueur saved = joueurRepository.save(joueur(saveClub()));
 

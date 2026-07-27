@@ -15,6 +15,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -102,7 +105,9 @@ class JoueurServiceTest {
         PageResponse<JoueurResponse> response =
                 joueurService.getAllJoueurs(
                         0,
-                        10
+                        10,
+                        "nom",
+                        "asc"
                 );
 
         assertEquals(2, response.getContent().size());
@@ -136,6 +141,44 @@ class JoueurServiceTest {
                 .findAll(any(Pageable.class));
     }
 
+    @Test
+    void getAllJoueurs_shouldApplyDescendingSort() {
+        when(
+                joueurRepository.findAll(
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(List.of())
+        );
+
+        joueurService.getAllJoueurs(
+                0,
+                10,
+                "nom",
+                "desc"
+        );
+
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(Pageable.class);
+
+        verify(joueurRepository)
+                .findAll(pageableCaptor.capture());
+
+        Pageable pageable = pageableCaptor.getValue();
+
+        Sort.Order sortOrder =
+                pageable.getSort()
+                        .getOrderFor("nom");
+
+        assertNotNull(sortOrder);
+        assertEquals(
+                Sort.Direction.DESC,
+                sortOrder.getDirection()
+        );
+        assertEquals(0, pageable.getPageNumber());
+        assertEquals(10, pageable.getPageSize());
+    }
+    
     @Test
     void getJoueurById_shouldReturnResponse_whenJoueurExists() {
         when(joueurRepository.findById(1L)).thenReturn(Optional.of(joueur(1L, null)));
