@@ -30,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class JoueurServiceTest {
@@ -107,7 +108,8 @@ class JoueurServiceTest {
                         0,
                         10,
                         "nom",
-                        "asc"
+                        "asc",
+                        null
                 );
 
         assertEquals(2, response.getContent().size());
@@ -155,7 +157,8 @@ class JoueurServiceTest {
                 0,
                 10,
                 "nom",
-                "desc"
+                "desc",
+                null
         );
 
         ArgumentCaptor<Pageable> pageableCaptor =
@@ -178,7 +181,82 @@ class JoueurServiceTest {
         assertEquals(0, pageable.getPageNumber());
         assertEquals(10, pageable.getPageSize());
     }
-    
+
+    @Test
+    void getAllJoueurs_shouldSearchByNameOrFirstName() {
+        Joueur joueur = joueur(
+                1L,
+                club(4L)
+        );
+
+        joueur.setNom("Mbappé");
+        joueur.setPrenom("Kylian");
+
+        when(
+                joueurRepository
+                        .findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(
+                                eq("mbapp"),
+                                eq("mbapp"),
+                                any(Pageable.class)
+                        )
+        ).thenReturn(
+                new PageImpl<>(List.of(joueur))
+        );
+
+        PageResponse<JoueurResponse> response =
+                joueurService.getAllJoueurs(
+                        0,
+                        10,
+                        "nom",
+                        "asc",
+                        "  mbapp  "
+                );
+
+        assertEquals(1, response.getContent().size());
+        assertEquals(
+                "Mbappé",
+                response.getContent()
+                        .get(0)
+                        .getNom()
+        );
+
+        assertEquals(
+                "Kylian",
+                response.getContent()
+                        .get(0)
+                        .getPrenom()
+        );
+
+        verify(joueurRepository)
+                .findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(
+                        eq("mbapp"),
+                        eq("mbapp"),
+                        any(Pageable.class)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldUseFindAll_whenSearchIsBlank() {
+        when(
+                joueurRepository.findAll(
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(List.of())
+        );
+
+        joueurService.getAllJoueurs(
+                0,
+                10,
+                "nom",
+                "asc",
+                "   "
+        );
+
+        verify(joueurRepository)
+                .findAll(any(Pageable.class));
+    }
+
     @Test
     void getJoueurById_shouldReturnResponse_whenJoueurExists() {
         when(joueurRepository.findById(1L)).thenReturn(Optional.of(joueur(1L, null)));

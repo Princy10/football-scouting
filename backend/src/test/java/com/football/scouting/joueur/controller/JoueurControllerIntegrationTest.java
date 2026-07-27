@@ -183,6 +183,82 @@ class JoueurControllerIntegrationTest {
     }
 
     @Test
+    void getAllJoueurs_shouldSearchByName()
+            throws Exception {
+
+        Joueur premier = joueur(null);
+        premier.setNom("Mbappé");
+        premier.setPrenom("Kylian");
+
+        Joueur deuxieme = joueur(null);
+        deuxieme.setNom("Wirtz");
+        deuxieme.setPrenom("Florian");
+
+        joueurRepository.save(premier);
+        joueurRepository.save(deuxieme);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "nom")
+                                .param("direction", "asc")
+                                .param("search", "mbapp")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].prenom")
+                                .value("Kylian")
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldSearchByFirstName()
+            throws Exception {
+
+        Joueur premier = joueur(null);
+        premier.setNom("Mbappé");
+        premier.setPrenom("Kylian");
+
+        Joueur deuxieme = joueur(null);
+        deuxieme.setNom("Wirtz");
+        deuxieme.setPrenom("Florian");
+
+        joueurRepository.save(premier);
+        joueurRepository.save(deuxieme);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("search", "florian")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Wirtz")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].prenom")
+                                .value("Florian")
+                );
+    }
+
+    @Test
     void updateJoueur_shouldReturnUpdatedJoueur() throws Exception {
         Joueur saved = joueurRepository.save(joueur(null));
         JoueurRequest request = request(null);

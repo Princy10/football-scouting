@@ -61,13 +61,14 @@ public class JoueurService {
             default -> "nom";
         };
     }
-    
+
     @Transactional(readOnly = true)
     public PageResponse<JoueurResponse> getAllJoueurs(
             int page,
             int size,
             String sortBy,
-            String direction
+            String direction,
+            String search
     ) {
         String sortProperty = resolveSortProperty(sortBy);
 
@@ -82,10 +83,24 @@ public class JoueurService {
                 Sort.by(sortDirection, sortProperty)
         );
 
+        Page<Joueur> joueurPage;
+
+        if (search == null || search.isBlank()) {
+            joueurPage = joueurRepository.findAll(pageRequest);
+        } else {
+            String cleanedSearch = search.trim();
+
+            joueurPage =
+                    joueurRepository
+                            .findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(
+                                    cleanedSearch,
+                                    cleanedSearch,
+                                    pageRequest
+                            );
+        }
+
         Page<JoueurResponse> responsePage =
-                joueurRepository
-                        .findAll(pageRequest)
-                        .map(this::mapToResponse);
+                joueurPage.map(this::mapToResponse);
 
         return PageResponse.from(responsePage);
     }
