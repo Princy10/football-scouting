@@ -2,20 +2,19 @@ package com.football.scouting.joueur.service;
 
 import com.football.scouting.club.entity.Club;
 import com.football.scouting.club.repository.ClubRepository;
+import com.football.scouting.common.dto.PageResponse;
 import com.football.scouting.common.exception.ResourceNotFoundException;
 import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.dto.JoueurResponse;
 import com.football.scouting.joueur.entity.Joueur;
 import com.football.scouting.joueur.repository.JoueurRepository;
-import com.football.scouting.common.dto.PageResponse;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
@@ -28,9 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class JoueurServiceTest {
@@ -109,6 +108,7 @@ class JoueurServiceTest {
                         10,
                         "nom",
                         "asc",
+                        null,
                         null
                 );
 
@@ -158,6 +158,7 @@ class JoueurServiceTest {
                 10,
                 "nom",
                 "desc",
+                null,
                 null
         );
 
@@ -209,7 +210,8 @@ class JoueurServiceTest {
                         10,
                         "nom",
                         "asc",
-                        "  mbapp  "
+                        "  mbapp  ",
+                        null
                 );
 
         assertEquals(1, response.getContent().size());
@@ -236,7 +238,7 @@ class JoueurServiceTest {
     }
 
     @Test
-    void getAllJoueurs_shouldUseFindAll_whenSearchIsBlank() {
+    void getAllJoueurs_shouldUseNullSearch_whenSearchIsBlank() {
         when(
                 joueurRepository.findAll(
                         any(Pageable.class)
@@ -250,11 +252,118 @@ class JoueurServiceTest {
                 10,
                 "nom",
                 "asc",
-                "   "
+                "   ",
+                null
         );
 
         verify(joueurRepository)
                 .findAll(any(Pageable.class));
+    }
+
+    @Test
+    void getAllJoueurs_shouldFilterByClub() {
+        Club club = club(4L);
+
+        Joueur joueur = joueur(1L, club);
+        joueur.setNom("Mbappé");
+        joueur.setPrenom("Kylian");
+
+        when(
+                joueurRepository.findByClub_Id(
+                        eq(4L),
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(List.of(joueur))
+        );
+
+        PageResponse<JoueurResponse> response =
+                joueurService.getAllJoueurs(
+                        0,
+                        10,
+                        "nom",
+                        "asc",
+                        null,
+                        4L
+                );
+
+        assertEquals(1, response.getContent().size());
+        assertEquals(
+                4L,
+                response.getContent()
+                        .get(0)
+                        .getClubId()
+        );
+
+        assertEquals(
+                "Mbappé",
+                response.getContent()
+                        .get(0)
+                        .getNom()
+        );
+
+        verify(joueurRepository)
+                .findByClub_Id(
+                        eq(4L),
+                        any(Pageable.class)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldCombineSearchAndClubFilter() {
+        Club club = club(4L);
+
+        Joueur joueur = joueur(1L, club);
+        joueur.setNom("Mbappé");
+        joueur.setPrenom("Kylian");
+
+        when(
+                joueurRepository
+                        .findByClub_IdAndNomContainingIgnoreCaseOrClub_IdAndPrenomContainingIgnoreCase(
+                                eq(4L),
+                                eq("kylian"),
+                                eq(4L),
+                                eq("kylian"),
+                                any(Pageable.class)
+                        )
+        ).thenReturn(
+                new PageImpl<>(List.of(joueur))
+        );
+
+        PageResponse<JoueurResponse> response =
+                joueurService.getAllJoueurs(
+                        0,
+                        10,
+                        "nom",
+                        "asc",
+                        "  kylian  ",
+                        4L
+                );
+
+        assertEquals(1, response.getContent().size());
+
+        assertEquals(
+                "Kylian",
+                response.getContent()
+                        .get(0)
+                        .getPrenom()
+        );
+
+        assertEquals(
+                4L,
+                response.getContent()
+                        .get(0)
+                        .getClubId()
+        );
+
+        verify(joueurRepository)
+                .findByClub_IdAndNomContainingIgnoreCaseOrClub_IdAndPrenomContainingIgnoreCase(
+                        eq(4L),
+                        eq("kylian"),
+                        eq(4L),
+                        eq("kylian"),
+                        any(Pageable.class)
+                );
     }
 
     @Test
@@ -337,6 +446,10 @@ class JoueurServiceTest {
     }
 
     private Club club(Long id) {
-        return Club.builder().id(id).nom("Ajesaia").pays("Madagascar").build();
+        return Club.builder()
+                .id(id)
+                .nom("Ajesaia")
+                .pays("Madagascar")
+                .build();
     }
 }

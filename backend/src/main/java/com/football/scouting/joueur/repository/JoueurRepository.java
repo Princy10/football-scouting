@@ -10,8 +10,22 @@ import org.springframework.stereotype.Repository;
 public interface JoueurRepository
         extends JpaRepository<Joueur, Long> {
 
+    Page<Joueur> findByClub_Id(
+            Long clubId,
+            Pageable pageable
+    );
+
     Page<Joueur> findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(
             String nom,
+            String prenom,
+            Pageable pageable
+    );
+
+    Page<Joueur>
+    findByClub_IdAndNomContainingIgnoreCaseOrClub_IdAndPrenomContainingIgnoreCase(
+            Long clubIdForNom,
+            String nom,
+            Long clubIdForPrenom,
             String prenom,
             Pageable pageable
     );

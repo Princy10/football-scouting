@@ -259,6 +259,125 @@ class JoueurControllerIntegrationTest {
     }
 
     @Test
+    void getAllJoueurs_shouldFilterByClub()
+            throws Exception {
+
+        Club premierClub =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Real Madrid CF")
+                                .pays("Espagne")
+                                .ville("Madrid")
+                                .division("La Liga")
+                                .build()
+                );
+
+        Club deuxiemeClub =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Liverpool FC")
+                                .pays("Angleterre")
+                                .ville("Liverpool")
+                                .division("Premier League")
+                                .build()
+                );
+
+        Joueur premier = joueur(premierClub);
+        premier.setNom("Mbappé");
+        premier.setPrenom("Kylian");
+
+        Joueur deuxieme = joueur(deuxiemeClub);
+        deuxieme.setNom("Salah");
+        deuxieme.setPrenom("Mohamed");
+
+        joueurRepository.save(premier);
+        joueurRepository.save(deuxieme);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param(
+                                        "clubId",
+                                        premierClub.getId().toString()
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].clubId")
+                                .value(premierClub.getId())
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldCombineSearchAndClubFilter()
+            throws Exception {
+
+        Club realMadrid =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Real Madrid CF")
+                                .pays("Espagne")
+                                .ville("Madrid")
+                                .division("La Liga")
+                                .build()
+                );
+
+        Club autreClub =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Paris Saint-Germain")
+                                .pays("France")
+                                .ville("Paris")
+                                .division("Ligue 1")
+                                .build()
+                );
+
+        Joueur kylianMadrid = joueur(realMadrid);
+        kylianMadrid.setNom("Mbappé");
+        kylianMadrid.setPrenom("Kylian");
+
+        Joueur kylianParis = joueur(autreClub);
+        kylianParis.setNom("Test");
+        kylianParis.setPrenom("Kylian");
+
+        joueurRepository.save(kylianMadrid);
+        joueurRepository.save(kylianParis);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("search", "kylian")
+                                .param(
+                                        "clubId",
+                                        realMadrid.getId().toString()
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].clubId")
+                                .value(realMadrid.getId())
+                );
+    }
+
+    @Test
     void updateJoueur_shouldReturnUpdatedJoueur() throws Exception {
         Joueur saved = joueurRepository.save(joueur(null));
         JoueurRequest request = request(null);

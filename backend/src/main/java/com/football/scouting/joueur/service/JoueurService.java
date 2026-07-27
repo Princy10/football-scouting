@@ -68,7 +68,8 @@ public class JoueurService {
             int size,
             String sortBy,
             String direction,
-            String search
+            String search,
+            Long clubId
     ) {
         String sortProperty = resolveSortProperty(sortBy);
 
@@ -83,17 +84,46 @@ public class JoueurService {
                 Sort.by(sortDirection, sortProperty)
         );
 
+        String cleanedSearch =
+                search == null || search.isBlank()
+                        ? null
+                        : search.trim();
+
         Page<Joueur> joueurPage;
 
-        if (search == null || search.isBlank()) {
-            joueurPage = joueurRepository.findAll(pageRequest);
-        } else {
-            String cleanedSearch = search.trim();
+        if (cleanedSearch == null && clubId == null) {
 
+            // Aucun filtre
+            joueurPage = joueurRepository.findAll(pageRequest);
+
+        } else if (cleanedSearch == null) {
+
+            // Filtre par club uniquement
+            joueurPage = joueurRepository.findByClub_Id(
+                    clubId,
+                    pageRequest
+            );
+
+        } else if (clubId == null) {
+
+            // Recherche par nom ou prénom uniquement
             joueurPage =
                     joueurRepository
                             .findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(
                                     cleanedSearch,
+                                    cleanedSearch,
+                                    pageRequest
+                            );
+
+        } else {
+
+            // Recherche par nom ou prénom + filtre par club
+            joueurPage =
+                    joueurRepository
+                            .findByClub_IdAndNomContainingIgnoreCaseOrClub_IdAndPrenomContainingIgnoreCase(
+                                    clubId,
+                                    cleanedSearch,
+                                    clubId,
                                     cleanedSearch,
                                     pageRequest
                             );

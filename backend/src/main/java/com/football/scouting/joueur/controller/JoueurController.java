@@ -41,7 +41,7 @@ public class JoueurController {
     }
 
     @Operation(
-            summary = "Lister et rechercher les joueurs avec pagination et tri"
+            summary = "Lister, rechercher et filtrer les joueurs"
     )
     @GetMapping
     public PageResponse<JoueurResponse> getAllJoueurs(
@@ -58,14 +58,18 @@ public class JoueurController {
             String direction,
 
             @RequestParam(required = false)
-            String search
+            String search,
+
+            @RequestParam(required = false)
+            Long clubId
     ) {
         return joueurService.getAllJoueurs(
                 page,
                 size,
                 sortBy,
                 direction,
-                search
+                search,
+                clubId
         );
     }
 
