@@ -81,12 +81,58 @@ class JoueurControllerIntegrationTest {
     }
 
     @Test
-    void getAllJoueurs_shouldReturnJoueurs() throws Exception {
-        joueurRepository.save(joueur(null));
+    void getAllJoueurs_shouldReturnPaginatedJoueurs()
+            throws Exception {
 
-        mockMvc.perform(get("/api/joueurs"))
+        Joueur premier = joueur(null);
+        premier.setNom("Mbappé");
+        premier.setPrenom("Kylian");
+
+        Joueur deuxieme = joueur(null);
+        deuxieme.setNom("Wirtz");
+        deuxieme.setPrenom("Florian");
+
+        joueurRepository.save(premier);
+        joueurRepository.save(deuxieme);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("page", "0")
+                                .param("size", "1")
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nom").value("Rakoto"));
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath("$.page")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.size")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.totalPages")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.first")
+                                .value(true)
+                )
+                .andExpect(
+                        jsonPath("$.last")
+                                .value(false)
+                );
     }
 
     @Test

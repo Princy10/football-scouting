@@ -7,6 +7,9 @@ import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.dto.JoueurResponse;
 import com.football.scouting.joueur.entity.Joueur;
 import com.football.scouting.joueur.repository.JoueurRepository;
+import com.football.scouting.common.dto.PageResponse;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -82,14 +85,55 @@ class JoueurServiceTest {
     }
 
     @Test
-    void getAllJoueurs_shouldReturnResponses() {
-        when(joueurRepository.findAll()).thenReturn(List.of(joueur(1L, null), joueur(2L, club(3L))));
+    void getAllJoueurs_shouldReturnPaginatedResponses() {
+        when(
+                joueurRepository.findAll(
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(
+                        List.of(
+                                joueur(1L, null),
+                                joueur(2L, club(3L))
+                        )
+                )
+        );
 
-        List<JoueurResponse> responses = joueurService.getAllJoueurs();
+        PageResponse<JoueurResponse> response =
+                joueurService.getAllJoueurs(
+                        0,
+                        10
+                );
 
-        assertEquals(2, responses.size());
-        assertNull(responses.get(0).getClubId());
-        assertEquals(3L, responses.get(1).getClubId());
+        assertEquals(2, response.getContent().size());
+        assertEquals(
+                2,
+                response.getTotalElements()
+        );
+        assertEquals(
+                1,
+                response.getTotalPages()
+        );
+        assertEquals(
+                0,
+                response.getPage()
+        );
+
+        assertNull(
+                response.getContent()
+                        .get(0)
+                        .getClubId()
+        );
+
+        assertEquals(
+                3L,
+                response.getContent()
+                        .get(1)
+                        .getClubId()
+        );
+
+        verify(joueurRepository)
+                .findAll(any(Pageable.class));
     }
 
     @Test

@@ -2,24 +2,30 @@ package com.football.scouting.joueur.service;
 
 import com.football.scouting.club.entity.Club;
 import com.football.scouting.club.repository.ClubRepository;
+import com.football.scouting.common.dto.PageResponse;
 import com.football.scouting.common.exception.ResourceNotFoundException;
 import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.dto.JoueurResponse;
 import com.football.scouting.joueur.entity.Joueur;
 import com.football.scouting.joueur.repository.JoueurRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class JoueurService {
 
     private final JoueurRepository joueurRepository;
     private final ClubRepository clubRepository;
 
-    public JoueurResponse createJoueur(JoueurRequest request) {
+    public JoueurResponse createJoueur(
+            JoueurRequest request
+    ) {
         Joueur joueur = Joueur.builder()
                 .nom(request.getNom())
                 .prenom(request.getPrenom())
@@ -32,42 +38,81 @@ public class JoueurService {
                 .club(findClubById(request.getClubId()))
                 .build();
 
-        return mapToResponse(joueurRepository.save(joueur));
+        return mapToResponse(
+                joueurRepository.save(joueur)
+        );
     }
 
-    public List<JoueurResponse> getAllJoueurs() {
-        return joueurRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .toList();
+    @Transactional(readOnly = true)
+    public PageResponse<JoueurResponse> getAllJoueurs(
+            int page,
+            int size
+    ) {
+        PageRequest pageRequest = PageRequest.of(
+                page,
+                size,
+                Sort.by(
+                        Sort.Order.asc("nom"),
+                        Sort.Order.asc("prenom")
+                )
+        );
+
+        Page<JoueurResponse> responsePage =
+                joueurRepository
+                        .findAll(pageRequest)
+                        .map(this::mapToResponse);
+
+        return PageResponse.from(responsePage);
     }
 
+    @Transactional(readOnly = true)
     public JoueurResponse getJoueurById(Long id) {
         return mapToResponse(findJoueurById(id));
     }
 
-    public JoueurResponse updateJoueur(Long id, JoueurRequest request) {
+    public JoueurResponse updateJoueur(
+            Long id,
+            JoueurRequest request
+    ) {
         Joueur joueur = findJoueurById(id);
 
         joueur.setNom(request.getNom());
         joueur.setPrenom(request.getPrenom());
-        joueur.setDateNaissance(request.getDateNaissance());
-        joueur.setNationalite(request.getNationalite());
-        joueur.setPostePrincipal(request.getPostePrincipal());
+        joueur.setDateNaissance(
+                request.getDateNaissance()
+        );
+        joueur.setNationalite(
+                request.getNationalite()
+        );
+        joueur.setPostePrincipal(
+                request.getPostePrincipal()
+        );
         joueur.setPiedFort(request.getPiedFort());
         joueur.setTaille(request.getTaille());
         joueur.setPoids(request.getPoids());
-        joueur.setClub(findClubById(request.getClubId()));
+        joueur.setClub(
+                findClubById(request.getClubId())
+        );
 
-        return mapToResponse(joueurRepository.save(joueur));
+        return mapToResponse(
+                joueurRepository.save(joueur)
+        );
     }
 
     public void deleteJoueur(Long id) {
-        joueurRepository.delete(findJoueurById(id));
+        joueurRepository.delete(
+                findJoueurById(id)
+        );
     }
 
     private Joueur findJoueurById(Long id) {
         return joueurRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Joueur introuvable avec l'id : " + id));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Joueur introuvable avec l'id : "
+                                        + id
+                        )
+                );
     }
 
     private Club findClubById(Long clubId) {
@@ -76,21 +121,36 @@ public class JoueurService {
         }
 
         return clubRepository.findById(clubId)
-                .orElseThrow(() -> new ResourceNotFoundException("Club introuvable avec l'id : " + clubId));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Club introuvable avec l'id : "
+                                        + clubId
+                        )
+                );
     }
 
-    private JoueurResponse mapToResponse(Joueur joueur) {
+    private JoueurResponse mapToResponse(
+            Joueur joueur
+    ) {
         return JoueurResponse.builder()
                 .id(joueur.getId())
                 .nom(joueur.getNom())
                 .prenom(joueur.getPrenom())
-                .dateNaissance(joueur.getDateNaissance())
+                .dateNaissance(
+                        joueur.getDateNaissance()
+                )
                 .nationalite(joueur.getNationalite())
-                .postePrincipal(joueur.getPostePrincipal())
+                .postePrincipal(
+                        joueur.getPostePrincipal()
+                )
                 .piedFort(joueur.getPiedFort())
                 .taille(joueur.getTaille())
                 .poids(joueur.getPoids())
-                .clubId(joueur.getClub() == null ? null : joueur.getClub().getId())
+                .clubId(
+                        joueur.getClub() == null
+                                ? null
+                                : joueur.getClub().getId()
+                )
                 .build();
     }
 }
