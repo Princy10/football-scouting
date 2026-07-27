@@ -60,9 +60,9 @@ class ClubControllerIntegrationTest {
     @Test
     void createClub_shouldReturnCreatedClub() throws Exception {
         ClubRequest request = ClubRequest.builder()
-                .nom("Ajesaia")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1")
                 .build();
 
@@ -71,9 +71,9 @@ class ClubControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.nom").value("Ajesaia"))
-                .andExpect(jsonPath("$.pays").value("Madagascar"))
-                .andExpect(jsonPath("$.ville").value("Antananarivo"))
+                .andExpect(jsonPath("$.nom").value("Arsenal FC"))
+                .andExpect(jsonPath("$.pays").value("Angleterre"))
+                .andExpect(jsonPath("$.ville").value("Londres"))
                 .andExpect(jsonPath("$.division").value("D1"));
     }
 
@@ -81,9 +81,9 @@ class ClubControllerIntegrationTest {
     void getClubById_shouldReturnClub_whenExists() throws Exception {
         Club savedClub = clubRepository.save(
                 Club.builder()
-                        .nom("Ajesaia")
-                        .pays("Madagascar")
-                        .ville("Antananarivo")
+                        .nom("Arsenal FC")
+                        .pays("Angleterre")
+                        .ville("Londres")
                         .division("D1")
                         .build()
         );
@@ -91,8 +91,8 @@ class ClubControllerIntegrationTest {
         mockMvc.perform(get("/api/clubs/{id}", savedClub.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(savedClub.getId()))
-                .andExpect(jsonPath("$.nom").value("Ajesaia"))
-                .andExpect(jsonPath("$.pays").value("Madagascar"));
+                .andExpect(jsonPath("$.nom").value("Arsenal FC"))
+                .andExpect(jsonPath("$.pays").value("Angleterre"));
     }
 
     @Test
@@ -107,8 +107,8 @@ class ClubControllerIntegrationTest {
 
     @Test
     void getAllClubs_shouldReturnClubs() throws Exception {
-        clubRepository.save(Club.builder().nom("Ajesaia").pays("Madagascar").build());
-        clubRepository.save(Club.builder().nom("Elgeco Plus").pays("Madagascar").build());
+        clubRepository.save(Club.builder().nom("Arsenal FC").pays("Angleterre").build());
+        clubRepository.save(Club.builder().nom("Chelsea FC").pays("Angleterre").build());
 
         mockMvc.perform(get("/api/clubs"))
                 .andExpect(status().isOk())
@@ -118,12 +118,12 @@ class ClubControllerIntegrationTest {
     @Test
     void updateClub_shouldReturnUpdatedClub() throws Exception {
         Club savedClub = clubRepository.save(
-                Club.builder().nom("Ajesaia").pays("Madagascar").division("D1").build()
+                Club.builder().nom("Arsenal FC").pays("Angleterre").division("Premier League").build()
         );
         ClubRequest request = ClubRequest.builder()
-                .nom("Ajesaia FC")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal Football Club")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1 Elite")
                 .build();
 
@@ -131,7 +131,7 @@ class ClubControllerIntegrationTest {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nom").value("Ajesaia FC"))
+                .andExpect(jsonPath("$.nom").value("Arsenal Football Club"))
                 .andExpect(jsonPath("$.division").value("D1 Elite"));
     }
 
@@ -140,7 +140,7 @@ class ClubControllerIntegrationTest {
         ClubRequest request = ClubRequest.builder()
                 .nom("")
                 .pays("")
-                .ville("Antananarivo")
+                .ville("Londres")
                 .division("D1")
                 .build();
 
@@ -161,9 +161,9 @@ class ClubControllerIntegrationTest {
     void deleteClub_shouldReturn204_whenClubExists() throws Exception {
         Club savedClub = clubRepository.save(
                 Club.builder()
-                        .nom("Ajesaia")
-                        .pays("Madagascar")
-                        .ville("Antananarivo")
+                        .nom("Arsenal FC")
+                        .pays("Angleterre")
+                        .ville("Londres")
                         .division("D1")
                         .build()
         );

@@ -56,7 +56,7 @@ class JoueurServiceTest {
 
         assertNotNull(response);
         assertEquals(10L, response.getId());
-        assertEquals("Rakoto", response.getNom());
+        assertEquals("Mbappé", response.getNom());
         assertEquals("Milieu", response.getPostePrincipal());
         assertEquals(1L, response.getClubId());
         verify(clubRepository).findById(1L);
@@ -373,7 +373,7 @@ class JoueurServiceTest {
         JoueurResponse response = joueurService.getJoueurById(1L);
 
         assertEquals(1L, response.getId());
-        assertEquals("Rakoto", response.getNom());
+        assertEquals("Mbappé", response.getNom());
     }
 
     @Test
@@ -393,7 +393,7 @@ class JoueurServiceTest {
         Joueur existing = joueur(1L, null);
         Club club = club(2L);
         JoueurRequest request = request(2L);
-        request.setNom("Rakotoarisoa");
+        request.setNom("Hernández");
 
         when(joueurRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(clubRepository.findById(2L)).thenReturn(Optional.of(club));
@@ -401,7 +401,7 @@ class JoueurServiceTest {
 
         JoueurResponse response = joueurService.updateJoueur(1L, request);
 
-        assertEquals("Rakotoarisoa", response.getNom());
+        assertEquals("Hernández", response.getNom());
         assertEquals(2L, response.getClubId());
         verify(joueurRepository).save(existing);
     }
@@ -418,10 +418,10 @@ class JoueurServiceTest {
 
     private JoueurRequest request(Long clubId) {
         return JoueurRequest.builder()
-                .nom("Rakoto")
-                .prenom("Jean")
+                .nom("Mbappé")
+                .prenom("Kylian")
                 .dateNaissance(LocalDate.of(2000, 1, 15))
-                .nationalite("Malagasy")
+                .nationalite("Française")
                 .postePrincipal("Milieu")
                 .piedFort("Droit")
                 .taille(178)
@@ -433,10 +433,10 @@ class JoueurServiceTest {
     private Joueur joueur(Long id, Club club) {
         return Joueur.builder()
                 .id(id)
-                .nom("Rakoto")
-                .prenom("Jean")
+                .nom("Mbappé")
+                .prenom("Kylian")
                 .dateNaissance(LocalDate.of(2000, 1, 15))
-                .nationalite("Malagasy")
+                .nationalite("Française")
                 .postePrincipal("Milieu")
                 .piedFort("Droit")
                 .taille(178)
@@ -448,8 +448,8 @@ class JoueurServiceTest {
     private Club club(Long id) {
         return Club.builder()
                 .id(id)
-                .nom("Ajesaia")
-                .pays("Madagascar")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
                 .build();
     }
 }

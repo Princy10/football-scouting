@@ -77,7 +77,7 @@ class RapportScoutingControllerIntegrationTest {
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.joueurId").value(joueur.getId()))
                 .andExpect(jsonPath("$.dateObservation").value("2026-07-15"))
-                .andExpect(jsonPath("$.matchObserve").value("Ajesaia - Elgeco Plus"))
+                .andExpect(jsonPath("$.matchObserve").value("Arsenal FC - Chelsea FC"))
                 .andExpect(jsonPath("$.scoreGlobal").isEmpty());
     }
 
@@ -156,7 +156,7 @@ class RapportScoutingControllerIntegrationTest {
         return RapportScoutingRequest.builder()
                 .joueurId(joueurId)
                 .dateObservation(LocalDate.of(2026, 7, 15))
-                .matchObserve("Ajesaia - Elgeco Plus")
+                .matchObserve("Arsenal FC - Chelsea FC")
                 .commentaireGeneral("Bonne vision du jeu et excellente qualité de passe.")
                 .recommandation("À suivre")
                 .scoutName("Jean Scout")
@@ -167,7 +167,7 @@ class RapportScoutingControllerIntegrationTest {
         return RapportScouting.builder()
                 .joueur(joueur)
                 .dateObservation(LocalDate.of(2026, 7, 15))
-                .matchObserve("Ajesaia - Elgeco Plus")
+                .matchObserve("Arsenal FC - Chelsea FC")
                 .commentaireGeneral("Bonne vision du jeu et excellente qualité de passe.")
                 .recommandation("À suivre")
                 .scoutName("Jean Scout")
@@ -176,8 +176,8 @@ class RapportScoutingControllerIntegrationTest {
 
     private Joueur saveJoueur() {
         return joueurRepository.save(Joueur.builder()
-                .nom("Rakoto")
-                .prenom("Jean")
+                .nom("Mbappé")
+                .prenom("Kylian")
                 .postePrincipal("Milieu")
                 .build());
     }

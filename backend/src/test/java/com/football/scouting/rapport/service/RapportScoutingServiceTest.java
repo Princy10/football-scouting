@@ -50,7 +50,7 @@ class RapportScoutingServiceTest {
         assertEquals(10L, response.getId());
         assertEquals(1L, response.getJoueurId());
         assertEquals(LocalDate.of(2026, 7, 15), response.getDateObservation());
-        assertEquals("Ajesaia - Elgeco Plus", response.getMatchObserve());
+        assertEquals("Arsenal FC - Chelsea FC", response.getMatchObserve());
         assertEquals(82, response.getScoreGlobal());
         verify(joueurRepository).findById(1L);
         verify(rapportScoutingRepository).save(any(RapportScouting.class));
@@ -145,7 +145,7 @@ class RapportScoutingServiceTest {
         return RapportScoutingRequest.builder()
                 .joueurId(joueurId)
                 .dateObservation(LocalDate.of(2026, 7, 15))
-                .matchObserve("Ajesaia - Elgeco Plus")
+                .matchObserve("Arsenal FC - Chelsea FC")
                 .commentaireGeneral("Bonne vision du jeu et excellente qualité de passe.")
                 .recommandation("À suivre")
                 .scoutName("Jean Scout")
@@ -157,7 +157,7 @@ class RapportScoutingServiceTest {
                 .id(id)
                 .joueur(joueur)
                 .dateObservation(LocalDate.of(2026, 7, 15))
-                .matchObserve("Ajesaia - Elgeco Plus")
+                .matchObserve("Arsenal FC - Chelsea FC")
                 .commentaireGeneral("Bonne vision du jeu et excellente qualité de passe.")
                 .recommandation("À suivre")
                 .scoreGlobal(82)
@@ -168,7 +168,7 @@ class RapportScoutingServiceTest {
     private Joueur joueur(Long id) {
         return Joueur.builder()
                 .id(id)
-                .nom("Rakoto")
+                .nom("Mbappé")
                 .postePrincipal("Milieu")
                 .build();
     }

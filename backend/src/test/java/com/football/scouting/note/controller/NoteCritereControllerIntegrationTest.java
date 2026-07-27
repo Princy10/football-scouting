@@ -425,8 +425,8 @@ class NoteCritereControllerIntegrationTest {
         Joueur joueur =
                 joueurRepository.save(
                         Joueur.builder()
-                                .nom("Rakoto")
-                                .prenom("Jean")
+                                .nom("Mbappé")
+                                .prenom("Kylian")
                                 .postePrincipal("Milieu")
                                 .build()
                 );
@@ -442,7 +442,7 @@ class NoteCritereControllerIntegrationTest {
                                 )
                         )
                         .matchObserve(
-                                "Ajesaia - Elgeco Plus"
+                                "Arsenal FC - Chelsea FC"
                         )
                         .commentaireGeneral(
                                 "Bonne vision du jeu."

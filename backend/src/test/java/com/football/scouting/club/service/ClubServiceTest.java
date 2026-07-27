@@ -29,17 +29,17 @@ class ClubServiceTest {
     @Test
     void createClub_shouldCreateAndReturnClubResponse() {
         ClubRequest request = ClubRequest.builder()
-                .nom("Ajesaia")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1")
                 .build();
 
         Club savedClub = Club.builder()
                 .id(1L)
-                .nom("Ajesaia")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1")
                 .build();
 
@@ -49,9 +49,9 @@ class ClubServiceTest {
 
         assertNotNull(response);
         assertEquals(1L, response.getId());
-        assertEquals("Ajesaia", response.getNom());
-        assertEquals("Madagascar", response.getPays());
-        assertEquals("Antananarivo", response.getVille());
+        assertEquals("Arsenal FC", response.getNom());
+        assertEquals("Angleterre", response.getPays());
+        assertEquals("Londres", response.getVille());
         assertEquals("D1", response.getDivision());
 
         verify(clubRepository).save(any(Club.class));
@@ -60,8 +60,8 @@ class ClubServiceTest {
     @Test
     void getAllClubs_shouldReturnListOfClubResponses() {
         List<Club> clubs = List.of(
-                Club.builder().id(1L).nom("Ajesaia").pays("Madagascar").ville("Antananarivo").division("D1").build(),
-                Club.builder().id(2L).nom("Elgeco Plus").pays("Madagascar").ville("Antananarivo").division("D1").build()
+                Club.builder().id(1L).nom("Arsenal FC").pays("Angleterre").ville("Londres").division("Premier League").build(),
+                Club.builder().id(2L).nom("Chelsea FC").pays("Angleterre").ville("Londres").division("Premier League").build()
         );
 
         when(clubRepository.findAll()).thenReturn(clubs);
@@ -69,8 +69,8 @@ class ClubServiceTest {
         List<ClubResponse> responses = clubService.getAllClubs();
 
         assertEquals(2, responses.size());
-        assertEquals("Ajesaia", responses.get(0).getNom());
-        assertEquals("Elgeco Plus", responses.get(1).getNom());
+        assertEquals("Arsenal FC", responses.get(0).getNom());
+        assertEquals("Chelsea FC", responses.get(1).getNom());
 
         verify(clubRepository).findAll();
     }
@@ -79,9 +79,9 @@ class ClubServiceTest {
     void getClubById_shouldReturnClubResponse_whenClubExists() {
         Club club = Club.builder()
                 .id(1L)
-                .nom("Ajesaia")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1")
                 .build();
 
@@ -91,7 +91,7 @@ class ClubServiceTest {
 
         assertNotNull(response);
         assertEquals(1L, response.getId());
-        assertEquals("Ajesaia", response.getNom());
+        assertEquals("Arsenal FC", response.getNom());
 
         verify(clubRepository).findById(1L);
     }
@@ -112,25 +112,25 @@ class ClubServiceTest {
     @Test
     void updateClub_shouldUpdateAndReturnClubResponse() {
         ClubRequest request = ClubRequest.builder()
-                .nom("Ajesaia FC")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal Football Club")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1 Elite")
                 .build();
 
         Club existingClub = Club.builder()
                 .id(1L)
-                .nom("Ajesaia")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1")
                 .build();
 
         Club updatedClub = Club.builder()
                 .id(1L)
-                .nom("Ajesaia FC")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal Football Club")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1 Elite")
                 .build();
 
@@ -140,7 +140,7 @@ class ClubServiceTest {
         ClubResponse response = clubService.updateClub(1L, request);
 
         assertNotNull(response);
-        assertEquals("Ajesaia FC", response.getNom());
+        assertEquals("Arsenal Football Club", response.getNom());
         assertEquals("D1 Elite", response.getDivision());
 
         verify(clubRepository).findById(1L);
@@ -151,8 +151,8 @@ class ClubServiceTest {
     void deleteClub_shouldDeleteClub_whenClubExists() {
         Club existingClub = Club.builder()
                 .id(1L)
-                .nom("Ajesaia")
-                .pays("Madagascar")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
                 .build();
 
         when(clubRepository.findById(1L)).thenReturn(Optional.of(existingClub));

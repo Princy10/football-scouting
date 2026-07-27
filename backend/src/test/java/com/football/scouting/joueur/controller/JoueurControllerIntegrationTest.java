@@ -75,7 +75,7 @@ class JoueurControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request(club.getId()))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.nom").value("Rakoto"))
+                .andExpect(jsonPath("$.nom").value("Mbappé"))
                 .andExpect(jsonPath("$.postePrincipal").value("Milieu"))
                 .andExpect(jsonPath("$.clubId").value(club.getId()));
     }
@@ -381,14 +381,14 @@ class JoueurControllerIntegrationTest {
     void updateJoueur_shouldReturnUpdatedJoueur() throws Exception {
         Joueur saved = joueurRepository.save(joueur(null));
         JoueurRequest request = request(null);
-        request.setNom("Rakotoarisoa");
+        request.setNom("Hernández");
         request.setPostePrincipal("Attaquant");
 
         mockMvc.perform(put("/api/joueurs/{id}", saved.getId())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nom").value("Rakotoarisoa"))
+                .andExpect(jsonPath("$.nom").value("Hernández"))
                 .andExpect(jsonPath("$.postePrincipal").value("Attaquant"));
     }
 
@@ -432,10 +432,10 @@ class JoueurControllerIntegrationTest {
 
     private JoueurRequest request(Long clubId) {
         return JoueurRequest.builder()
-                .nom("Rakoto")
-                .prenom("Jean")
+                .nom("Mbappé")
+                .prenom("Kylian")
                 .dateNaissance(LocalDate.of(2000, 1, 15))
-                .nationalite("Malagasy")
+                .nationalite("Française")
                 .postePrincipal("Milieu")
                 .piedFort("Droit")
                 .taille(178)
@@ -446,10 +446,10 @@ class JoueurControllerIntegrationTest {
 
     private Joueur joueur(Club club) {
         return Joueur.builder()
-                .nom("Rakoto")
-                .prenom("Jean")
+                .nom("Mbappé")
+                .prenom("Kylian")
                 .dateNaissance(LocalDate.of(2000, 1, 15))
-                .nationalite("Malagasy")
+                .nationalite("Française")
                 .postePrincipal("Milieu")
                 .piedFort("Droit")
                 .taille(178)
@@ -460,9 +460,9 @@ class JoueurControllerIntegrationTest {
 
     private Club saveClub() {
         return clubRepository.save(Club.builder()
-                .nom("Ajesaia")
-                .pays("Madagascar")
-                .ville("Antananarivo")
+                .nom("Arsenal FC")
+                .pays("Angleterre")
+                .ville("Londres")
                 .division("D1")
                 .build());
     }
