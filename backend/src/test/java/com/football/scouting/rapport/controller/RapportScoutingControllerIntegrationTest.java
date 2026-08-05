@@ -82,12 +82,298 @@ class RapportScoutingControllerIntegrationTest {
     }
 
     @Test
-    void getAllRapports_shouldReturnRapports() throws Exception {
-        rapportScoutingRepository.save(rapport(saveJoueur()));
+    void getAllRapports_shouldReturnPaginatedRapports()
+            throws Exception {
 
-        mockMvc.perform(get("/api/rapports"))
+        Joueur joueur = saveJoueur();
+
+        RapportScouting ancien =
+                rapport(joueur);
+
+        ancien.setDateObservation(
+                LocalDate.of(2026, 5, 1)
+        );
+
+        ancien.setScoutName("Ancien Scout");
+
+        RapportScouting recent =
+                rapport(joueur);
+
+        recent.setDateObservation(
+                LocalDate.of(2026, 5, 20)
+        );
+
+        recent.setScoutName("Jean Scout");
+
+        rapportScoutingRepository.save(ancien);
+        rapportScoutingRepository.save(recent);
+
+        mockMvc.perform(
+                        get("/api/rapports")
+                                .param("page", "0")
+                                .param("size", "1")
+                )
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].scoutName").value("Jean Scout"));
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].scoutName"
+                        )
+                                .value("Jean Scout")
+                )
+                .andExpect(
+                        jsonPath("$.page")
+                                .value(0)
+                )
+                .andExpect(
+                        jsonPath("$.size")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.totalPages")
+                                .value(2)
+                )
+                .andExpect(
+                        jsonPath("$.first")
+                                .value(true)
+                )
+                .andExpect(
+                        jsonPath("$.last")
+                                .value(false)
+                );
+    }
+
+    @Test
+    void getAllRapports_shouldCombineAllFilters()
+            throws Exception {
+
+        Joueur cible =
+                joueurRepository.save(
+                        Joueur.builder()
+                                .nom("Mbappé")
+                                .prenom("Kylian")
+                                .postePrincipal("Attaquant")
+                                .build()
+                );
+
+        Joueur autreJoueur =
+                joueurRepository.save(
+                        Joueur.builder()
+                                .nom("Wirtz")
+                                .prenom("Florian")
+                                .postePrincipal("Milieu")
+                                .build()
+                );
+
+        RapportScouting rapportCible =
+                rapport(cible);
+
+        rapportCible.setDateObservation(
+                LocalDate.of(2026, 5, 15)
+        );
+
+        rapportCible.setMatchObserve(
+                "Analyse finale européenne"
+        );
+
+        rapportCible.setScoreGlobal(88);
+        rapportCible.setRecommandation(
+                "RECOMMANDE"
+        );
+        rapportCible.setScoutName(
+                "Alice Dupont"
+        );
+
+        RapportScouting mauvaisJoueur =
+                rapport(autreJoueur);
+
+        mauvaisJoueur.setDateObservation(
+                LocalDate.of(2026, 5, 15)
+        );
+
+        mauvaisJoueur.setMatchObserve(
+                "Analyse finale européenne"
+        );
+
+        mauvaisJoueur.setScoreGlobal(88);
+        mauvaisJoueur.setRecommandation(
+                "RECOMMANDE"
+        );
+        mauvaisJoueur.setScoutName(
+                "Alice Dupont"
+        );
+
+        RapportScouting mauvaisScore =
+                rapport(cible);
+
+        mauvaisScore.setDateObservation(
+                LocalDate.of(2026, 5, 15)
+        );
+
+        mauvaisScore.setMatchObserve(
+                "Analyse finale européenne"
+        );
+
+        mauvaisScore.setScoreGlobal(65);
+        mauvaisScore.setRecommandation(
+                "A_DEVELOPPER"
+        );
+        mauvaisScore.setScoutName(
+                "Alice Dupont"
+        );
+
+        rapportScoutingRepository.save(
+                rapportCible
+        );
+
+        rapportScoutingRepository.save(
+                mauvaisJoueur
+        );
+
+        rapportScoutingRepository.save(
+                mauvaisScore
+        );
+
+        mockMvc.perform(
+                        get("/api/rapports")
+                                .param(
+                                        "search",
+                                        "finale"
+                                )
+                                .param(
+                                        "joueurId",
+                                        cible.getId().toString()
+                                )
+                                .param(
+                                        "scoreMin",
+                                        "80"
+                                )
+                                .param(
+                                        "scoreMax",
+                                        "90"
+                                )
+                                .param(
+                                        "recommandation",
+                                        "recommande"
+                                )
+                                .param(
+                                        "dateObservationMin",
+                                        "2026-05-01"
+                                )
+                                .param(
+                                        "dateObservationMax",
+                                        "2026-05-31"
+                                )
+                                .param(
+                                        "scout",
+                                        "alice"
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].joueurId"
+                        )
+                                .value(cible.getId())
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].scoreGlobal"
+                        )
+                                .value(88)
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].recommandation"
+                        )
+                                .value("RECOMMANDE")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].scoutName"
+                        )
+                                .value("Alice Dupont")
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void getAllRapports_shouldReturn400_whenScoreRangeIsInvalid()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/rapports")
+                                .param("scoreMin", "90")
+                                .param("scoreMax", "70")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "Le score minimal ne doit pas "
+                                                + "être supérieur au "
+                                                + "score maximal."
+                                )
+                );
+    }
+
+    @Test
+    void getAllRapports_shouldReturn400_whenScoreIsAbove100()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/rapports")
+                                .param("scoreMin", "110")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "Le score minimal doit être "
+                                                + "compris entre 0 et 100."
+                                )
+                );
+    }
+
+    @Test
+    void getAllRapports_shouldReturn400_whenDateRangeIsInvalid()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/rapports")
+                                .param(
+                                        "dateObservationMin",
+                                        "2026-06-01"
+                                )
+                                .param(
+                                        "dateObservationMax",
+                                        "2026-05-01"
+                                )
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "La date d'observation minimale "
+                                                + "ne doit pas être "
+                                                + "postérieure à la date "
+                                                + "maximale."
+                                )
+                );
     }
 
     @Test

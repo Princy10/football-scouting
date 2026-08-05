@@ -1,5 +1,7 @@
 package com.football.scouting.rapport.controller;
 
+import com.football.scouting.common.dto.PageResponse;
+import com.football.scouting.rapport.dto.RapportScoutingFilterRequest;
 import com.football.scouting.rapport.dto.RapportScoutingRequest;
 import com.football.scouting.rapport.dto.RapportScoutingResponse;
 import com.football.scouting.rapport.service.RapportScoutingService;
@@ -7,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,10 +35,18 @@ public class RapportScoutingController {
         return rapportService.createRapport(request);
     }
 
-    @Operation(summary = "Lister tous les rapports de scouting")
+    @Operation(
+            summary = "Lister, rechercher, filtrer et trier "
+                    + "les rapports de scouting"
+    )
     @GetMapping
-    public List<RapportScoutingResponse> getAllRapports() {
-        return rapportService.getAllRapports();
+    public PageResponse<RapportScoutingResponse>
+    getAllRapports(
+            @ParameterObject
+            @ModelAttribute
+            RapportScoutingFilterRequest filters
+    ) {
+        return rapportService.getAllRapports(filters);
     }
 
     @Operation(

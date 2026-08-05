@@ -1,17 +1,25 @@
 package com.football.scouting.rapport.service;
 
+import com.football.scouting.common.dto.PageResponse;
+import com.football.scouting.common.exception.InvalidFilterException;
 import com.football.scouting.common.exception.ResourceNotFoundException;
 import com.football.scouting.joueur.entity.Joueur;
 import com.football.scouting.joueur.repository.JoueurRepository;
+import com.football.scouting.rapport.dto.RapportScoutingFilterRequest;
 import com.football.scouting.rapport.dto.RapportScoutingRequest;
 import com.football.scouting.rapport.dto.RapportScoutingResponse;
 import com.football.scouting.rapport.entity.RapportScouting;
 import com.football.scouting.rapport.repository.RapportScoutingRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,8 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RapportScoutingServiceTest {
@@ -69,24 +76,58 @@ class RapportScoutingServiceTest {
     }
 
     @Test
-    void getAllRapports_shouldReturnResponses() {
+    void getAllRapports_shouldReturnPaginatedResponses() {
+        RapportScouting premier =
+                rapport(1L, joueur(10L));
+
+        RapportScouting deuxieme =
+                rapport(2L, joueur(20L));
+
         when(
-                rapportScoutingRepository.findAllByOrderByCreatedAtDesc()
-        ).thenReturn(List.of(
-                rapport(1L, joueur(10L)),
-                rapport(2L, joueur(20L))
-        ));
+                rapportScoutingRepository.findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(
+                        List.of(
+                                premier,
+                                deuxieme
+                        )
+                )
+        );
 
-        List<RapportScoutingResponse> responses =
-                rapportScoutingService.getAllRapports();
+        RapportScoutingFilterRequest filters =
+                new RapportScoutingFilterRequest();
 
-        assertEquals(2, responses.size());
-        assertEquals(10L, responses.get(0).getJoueurId());
-        assertEquals(20L, responses.get(1).getJoueurId());
+        PageResponse<RapportScoutingResponse> response =
+                rapportScoutingService
+                        .getAllRapports(filters);
 
-        verify(
-                rapportScoutingRepository
-        ).findAllByOrderByCreatedAtDesc();
+        assertEquals(
+                2,
+                response.getContent().size()
+        );
+
+        assertEquals(
+                10L,
+                response.getContent()
+                        .get(0)
+                        .getJoueurId()
+        );
+
+        assertEquals(
+                20L,
+                response.getContent()
+                        .get(1)
+                        .getJoueurId()
+        );
+
+        verify(rapportScoutingRepository)
+                .findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                );
     }
 
     @Test
@@ -139,6 +180,175 @@ class RapportScoutingServiceTest {
         rapportScoutingService.deleteRapport(1L);
 
         verify(rapportScoutingRepository).delete(existing);
+    }
+
+    @Test
+    void getAllRapports_shouldApplyScoreDescendingSort() {
+        when(
+                rapportScoutingRepository.findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(List.of())
+        );
+
+        RapportScoutingFilterRequest filters =
+                new RapportScoutingFilterRequest();
+
+        filters.setSortBy("scoreGlobal");
+        filters.setDirection("desc");
+
+        rapportScoutingService
+                .getAllRapports(filters);
+
+        ArgumentCaptor<Pageable> pageableCaptor =
+                ArgumentCaptor.forClass(
+                        Pageable.class
+                );
+
+        verify(rapportScoutingRepository)
+                .findAll(
+                        any(Specification.class),
+                        pageableCaptor.capture()
+                );
+
+        Pageable pageable =
+                pageableCaptor.getValue();
+
+        Sort.Order order =
+                pageable.getSort()
+                        .getOrderFor("scoreGlobal");
+
+        assertNotNull(order);
+
+        assertEquals(
+                Sort.Direction.DESC,
+                order.getDirection()
+        );
+    }
+
+    @Test
+    void getAllRapports_shouldUseAllFilters() {
+        Joueur joueur = joueur(32L);
+
+        RapportScouting rapport =
+                rapport(1L, joueur);
+
+        rapport.setScoreGlobal(88);
+        rapport.setRecommandation("RECOMMANDE");
+        rapport.setScoutName("Alice Dupont");
+        rapport.setDateObservation(
+                LocalDate.of(2026, 5, 15)
+        );
+
+        when(
+                rapportScoutingRepository.findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(List.of(rapport))
+        );
+
+        RapportScoutingFilterRequest filters =
+                new RapportScoutingFilterRequest();
+
+        filters.setSearch("analyse");
+        filters.setJoueurId(32L);
+        filters.setScoreMin(80);
+        filters.setScoreMax(90);
+        filters.setRecommandation("RECOMMANDE");
+        filters.setScout("alice");
+        filters.setDateObservationMin(
+                LocalDate.of(2026, 5, 1)
+        );
+        filters.setDateObservationMax(
+                LocalDate.of(2026, 5, 31)
+        );
+
+        PageResponse<RapportScoutingResponse> response =
+                rapportScoutingService
+                        .getAllRapports(filters);
+
+        assertEquals(
+                1,
+                response.getContent().size()
+        );
+
+        assertEquals(
+                88,
+                response.getContent()
+                        .getFirst()
+                        .getScoreGlobal()
+        );
+
+        assertEquals(
+                "Alice Dupont",
+                response.getContent()
+                        .getFirst()
+                        .getScoutName()
+        );
+
+        assertEquals(
+                32L,
+                response.getContent()
+                        .getFirst()
+                        .getJoueurId()
+        );
+    }
+
+    @Test
+    void getAllRapports_shouldRejectInvalidScoreRange() {
+        RapportScoutingFilterRequest filters =
+                new RapportScoutingFilterRequest();
+
+        filters.setScoreMin(90);
+        filters.setScoreMax(70);
+
+        InvalidFilterException exception =
+                assertThrows(
+                        InvalidFilterException.class,
+                        () -> rapportScoutingService
+                                .getAllRapports(filters)
+                );
+
+        assertEquals(
+                "Le score minimal ne doit pas être supérieur "
+                        + "au score maximal.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                rapportScoutingRepository
+        );
+    }
+
+    @Test
+    void getAllRapports_shouldRejectInvalidDateRange() {
+        RapportScoutingFilterRequest filters =
+                new RapportScoutingFilterRequest();
+
+        filters.setDateObservationMin(
+                LocalDate.of(2026, 6, 1)
+        );
+
+        filters.setDateObservationMax(
+                LocalDate.of(2026, 5, 1)
+        );
+
+        InvalidFilterException exception =
+                assertThrows(
+                        InvalidFilterException.class,
+                        () -> rapportScoutingService
+                                .getAllRapports(filters)
+                );
+
+        assertEquals(
+                "La date d'observation minimale ne doit pas "
+                        + "être postérieure à la date maximale.",
+                exception.getMessage()
+        );
     }
 
     private RapportScoutingRequest request(Long joueurId) {
