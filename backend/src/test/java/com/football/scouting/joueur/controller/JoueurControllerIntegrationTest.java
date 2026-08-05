@@ -466,4 +466,311 @@ class JoueurControllerIntegrationTest {
                 .division("D1")
                 .build());
     }
+
+    @Test
+    void getAllJoueurs_shouldFilterByPoste()
+            throws Exception {
+
+        Joueur attaquant = joueur(null);
+        attaquant.setNom("Mbappé");
+        attaquant.setPrenom("Kylian");
+        attaquant.setPostePrincipal("Attaquant");
+
+        Joueur milieu = joueur(null);
+        milieu.setNom("Wirtz");
+        milieu.setPrenom("Florian");
+        milieu.setPostePrincipal("Milieu");
+
+        joueurRepository.save(attaquant);
+        joueurRepository.save(milieu);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param(
+                                        "poste",
+                                        "attaquant"
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].postePrincipal"
+                        )
+                                .value("Attaquant")
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldCombineAllFilters()
+            throws Exception {
+
+        Club realMadrid =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Real Madrid CF")
+                                .pays("Espagne")
+                                .ville("Madrid")
+                                .division("La Liga")
+                                .build()
+                );
+
+        Club paris =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Paris Saint-Germain")
+                                .pays("France")
+                                .ville("Paris")
+                                .division("Ligue 1")
+                                .build()
+                );
+
+        Joueur kylianMadrid = joueur(realMadrid);
+        kylianMadrid.setNom("Mbappé");
+        kylianMadrid.setPrenom("Kylian");
+        kylianMadrid.setPostePrincipal("Attaquant");
+        kylianMadrid.setNationalite("France");
+
+        Joueur kylianMilieu = joueur(realMadrid);
+        kylianMilieu.setNom("Test");
+        kylianMilieu.setPrenom("Kylian");
+        kylianMilieu.setPostePrincipal("Milieu");
+        kylianMilieu.setNationalite("France");
+
+        Joueur kylianParis = joueur(paris);
+        kylianParis.setNom("Autre");
+        kylianParis.setPrenom("Kylian");
+        kylianParis.setPostePrincipal("Attaquant");
+        kylianParis.setNationalite("Belgique");
+
+        joueurRepository.save(kylianMadrid);
+        joueurRepository.save(kylianMilieu);
+        joueurRepository.save(kylianParis);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("search", "kylian")
+                                .param(
+                                        "clubId",
+                                        realMadrid
+                                                .getId()
+                                                .toString()
+                                )
+                                .param(
+                                        "poste",
+                                        "Attaquant"
+                                )
+                                .param("nationalite", "France")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].clubId")
+                                .value(realMadrid.getId())
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].postePrincipal"
+                        )
+                                .value("Attaquant")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nationalite")
+                                .value("France")
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldFilterByNationalite()
+            throws Exception {
+
+        Joueur joueurFrancais = joueur(null);
+        joueurFrancais.setNom("Mbappé");
+        joueurFrancais.setPrenom("Kylian");
+        joueurFrancais.setNationalite("France");
+        joueurFrancais.setPostePrincipal("Attaquant");
+
+        Joueur joueurAllemand = joueur(null);
+        joueurAllemand.setNom("Wirtz");
+        joueurAllemand.setPrenom("Florian");
+        joueurAllemand.setNationalite("Allemagne");
+        joueurAllemand.setPostePrincipal("Milieu");
+
+        joueurRepository.save(joueurFrancais);
+        joueurRepository.save(joueurAllemand);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param(
+                                        "nationalite",
+                                        "france"
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].nationalite"
+                        )
+                                .value("France")
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldFilterByPhysicalCriteria()
+            throws Exception {
+
+        Joueur matchingPlayer = joueur(null);
+        matchingPlayer.setNom("Alpha");
+        matchingPlayer.setPrenom("Test");
+        matchingPlayer.setPiedFort("Droit");
+        matchingPlayer.setTaille(180);
+        matchingPlayer.setPoids(76);
+        matchingPlayer.setDateNaissance(
+                LocalDate.of(2000, 5, 10)
+        );
+
+        Joueur otherPlayer = joueur(null);
+        otherPlayer.setNom("Beta");
+        otherPlayer.setPrenom("Test");
+        otherPlayer.setPiedFort("Gauche");
+        otherPlayer.setTaille(170);
+        otherPlayer.setPoids(65);
+        otherPlayer.setDateNaissance(
+                LocalDate.of(1995, 4, 15)
+        );
+
+        joueurRepository.save(matchingPlayer);
+        joueurRepository.save(otherPlayer);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("piedFort", "droit")
+                                .param("tailleMin", "175")
+                                .param("tailleMax", "185")
+                                .param("poidsMin", "70")
+                                .param("poidsMax", "80")
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Alpha")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].piedFort")
+                                .value("Droit")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].taille")
+                                .value(180)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].poids")
+                                .value(76)
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldFilterByBirthDateRange()
+            throws Exception {
+
+        Joueur premier = joueur(null);
+        premier.setNom("Alpha");
+        premier.setDateNaissance(
+                LocalDate.of(2001, 6, 15)
+        );
+
+        Joueur deuxieme = joueur(null);
+        deuxieme.setNom("Beta");
+        deuxieme.setDateNaissance(
+                LocalDate.of(1995, 3, 20)
+        );
+
+        joueurRepository.save(premier);
+        joueurRepository.save(deuxieme);
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param(
+                                        "dateNaissanceMin",
+                                        "2000-01-01"
+                                )
+                                .param(
+                                        "dateNaissanceMax",
+                                        "2002-12-31"
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Alpha")
+                )
+                .andExpect(
+                        jsonPath(
+                                "$.content[0].dateNaissance"
+                        )
+                                .value("2001-06-15")
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldReturn400_whenRangeIsInvalid()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param("tailleMin", "190")
+                                .param("tailleMax", "175")
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "La taille minimale ne doit pas "
+                                                + "être supérieure à la "
+                                                + "taille maximale."
+                                )
+                );
+    }
 }

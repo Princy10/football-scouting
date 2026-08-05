@@ -3,7 +3,9 @@ package com.football.scouting.joueur.service;
 import com.football.scouting.club.entity.Club;
 import com.football.scouting.club.repository.ClubRepository;
 import com.football.scouting.common.dto.PageResponse;
+import com.football.scouting.common.exception.InvalidFilterException;
 import com.football.scouting.common.exception.ResourceNotFoundException;
+import com.football.scouting.joueur.dto.JoueurFilterRequest;
 import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.dto.JoueurResponse;
 import com.football.scouting.joueur.entity.Joueur;
@@ -17,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -28,8 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class JoueurServiceTest {
@@ -91,6 +93,7 @@ class JoueurServiceTest {
     void getAllJoueurs_shouldReturnPaginatedResponses() {
         when(
                 joueurRepository.findAll(
+                        any(Specification.class),
                         any(Pageable.class)
                 )
         ).thenReturn(
@@ -102,15 +105,11 @@ class JoueurServiceTest {
                 )
         );
 
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
+
         PageResponse<JoueurResponse> response =
-                joueurService.getAllJoueurs(
-                        0,
-                        10,
-                        "nom",
-                        "asc",
-                        null,
-                        null
-                );
+                joueurService.getAllJoueurs(filters);
 
         assertEquals(2, response.getContent().size());
         assertEquals(
@@ -140,33 +139,38 @@ class JoueurServiceTest {
         );
 
         verify(joueurRepository)
-                .findAll(any(Pageable.class));
+                .findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                );
     }
 
     @Test
     void getAllJoueurs_shouldApplyDescendingSort() {
         when(
                 joueurRepository.findAll(
+                        any(Specification.class),
                         any(Pageable.class)
                 )
         ).thenReturn(
                 new PageImpl<>(List.of())
         );
 
-        joueurService.getAllJoueurs(
-                0,
-                10,
-                "nom",
-                "desc",
-                null,
-                null
-        );
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
+
+        filters.setDirection("desc");
+
+        joueurService.getAllJoueurs(filters);
 
         ArgumentCaptor<Pageable> pageableCaptor =
                 ArgumentCaptor.forClass(Pageable.class);
 
         verify(joueurRepository)
-                .findAll(pageableCaptor.capture());
+                .findAll(
+                        any(Specification.class),
+                        pageableCaptor.capture()
+                );
 
         Pageable pageable = pageableCaptor.getValue();
 
@@ -184,184 +188,66 @@ class JoueurServiceTest {
     }
 
     @Test
-    void getAllJoueurs_shouldSearchByNameOrFirstName() {
-        Joueur joueur = joueur(
-                1L,
-                club(4L)
-        );
+    void getAllJoueurs_shouldApplyCombinedFilters() {
+        Club club = club(4L);
 
+        Joueur joueur = joueur(1L, club);
         joueur.setNom("Mbappé");
         joueur.setPrenom("Kylian");
+        joueur.setPostePrincipal("Attaquant");
+        joueur.setNationalite("France");
 
-        when(
-                joueurRepository
-                        .findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(
-                                eq("mbapp"),
-                                eq("mbapp"),
-                                any(Pageable.class)
-                        )
-        ).thenReturn(
-                new PageImpl<>(List.of(joueur))
-        );
-
-        PageResponse<JoueurResponse> response =
-                joueurService.getAllJoueurs(
-                        0,
-                        10,
-                        "nom",
-                        "asc",
-                        "  mbapp  ",
-                        null
-                );
-
-        assertEquals(1, response.getContent().size());
-        assertEquals(
-                "Mbappé",
-                response.getContent()
-                        .get(0)
-                        .getNom()
-        );
-
-        assertEquals(
-                "Kylian",
-                response.getContent()
-                        .get(0)
-                        .getPrenom()
-        );
-
-        verify(joueurRepository)
-                .findByNomContainingIgnoreCaseOrPrenomContainingIgnoreCase(
-                        eq("mbapp"),
-                        eq("mbapp"),
-                        any(Pageable.class)
-                );
-    }
-
-    @Test
-    void getAllJoueurs_shouldUseNullSearch_whenSearchIsBlank() {
         when(
                 joueurRepository.findAll(
-                        any(Pageable.class)
-                )
-        ).thenReturn(
-                new PageImpl<>(List.of())
-        );
-
-        joueurService.getAllJoueurs(
-                0,
-                10,
-                "nom",
-                "asc",
-                "   ",
-                null
-        );
-
-        verify(joueurRepository)
-                .findAll(any(Pageable.class));
-    }
-
-    @Test
-    void getAllJoueurs_shouldFilterByClub() {
-        Club club = club(4L);
-
-        Joueur joueur = joueur(1L, club);
-        joueur.setNom("Mbappé");
-        joueur.setPrenom("Kylian");
-
-        when(
-                joueurRepository.findByClub_Id(
-                        eq(4L),
+                        any(Specification.class),
                         any(Pageable.class)
                 )
         ).thenReturn(
                 new PageImpl<>(List.of(joueur))
         );
 
-        PageResponse<JoueurResponse> response =
-                joueurService.getAllJoueurs(
-                        0,
-                        10,
-                        "nom",
-                        "asc",
-                        null,
-                        4L
-                );
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
 
-        assertEquals(1, response.getContent().size());
+        PageResponse<JoueurResponse> response =
+                joueurService.getAllJoueurs(filters);
+
         assertEquals(
-                4L,
-                response.getContent()
-                        .get(0)
-                        .getClubId()
+                1,
+                response.getContent().size()
         );
 
         assertEquals(
                 "Mbappé",
                 response.getContent()
-                        .get(0)
+                        .getFirst()
                         .getNom()
         );
 
-        verify(joueurRepository)
-                .findByClub_Id(
-                        eq(4L),
-                        any(Pageable.class)
-                );
-    }
-
-    @Test
-    void getAllJoueurs_shouldCombineSearchAndClubFilter() {
-        Club club = club(4L);
-
-        Joueur joueur = joueur(1L, club);
-        joueur.setNom("Mbappé");
-        joueur.setPrenom("Kylian");
-
-        when(
-                joueurRepository
-                        .findByClub_IdAndNomContainingIgnoreCaseOrClub_IdAndPrenomContainingIgnoreCase(
-                                eq(4L),
-                                eq("kylian"),
-                                eq(4L),
-                                eq("kylian"),
-                                any(Pageable.class)
-                        )
-        ).thenReturn(
-                new PageImpl<>(List.of(joueur))
-        );
-
-        PageResponse<JoueurResponse> response =
-                joueurService.getAllJoueurs(
-                        0,
-                        10,
-                        "nom",
-                        "asc",
-                        "  kylian  ",
-                        4L
-                );
-
-        assertEquals(1, response.getContent().size());
-
         assertEquals(
-                "Kylian",
+                "Attaquant",
                 response.getContent()
-                        .get(0)
-                        .getPrenom()
+                        .getFirst()
+                        .getPostePrincipal()
         );
 
         assertEquals(
                 4L,
                 response.getContent()
-                        .get(0)
+                        .getFirst()
                         .getClubId()
         );
 
+        assertEquals(
+                "France",
+                response.getContent()
+                        .getFirst()
+                        .getNationalite()
+        );
+
         verify(joueurRepository)
-                .findByClub_IdAndNomContainingIgnoreCaseOrClub_IdAndPrenomContainingIgnoreCase(
-                        eq(4L),
-                        eq("kylian"),
-                        eq(4L),
-                        eq("kylian"),
+                .findAll(
+                        any(Specification.class),
                         any(Pageable.class)
                 );
     }
@@ -414,6 +300,118 @@ class JoueurServiceTest {
         joueurService.deleteJoueur(1L);
 
         verify(joueurRepository).delete(existing);
+    }
+
+    @Test
+    void getAllJoueurs_shouldUseAllAvailableFilters() {
+        Club club = club(4L);
+
+        Joueur joueur = joueur(1L, club);
+        joueur.setNom("JoueurTest");
+        joueur.setPrenom("Europe");
+        joueur.setPostePrincipal("Attaquant");
+        joueur.setNationalite("France");
+        joueur.setPiedFort("Droit");
+        joueur.setTaille(180);
+        joueur.setPoids(76);
+        joueur.setDateNaissance(
+                LocalDate.of(2000, 5, 10)
+        );
+
+        when(
+                joueurRepository.findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                )
+        ).thenReturn(
+                new PageImpl<>(List.of(joueur))
+        );
+
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
+
+        filters.setPage(0);
+        filters.setSize(10);
+        filters.setSortBy("nom");
+        filters.setDirection("asc");
+        filters.setSearch("Joueur");
+        filters.setClubId(4L);
+        filters.setPoste("Attaquant");
+        filters.setNationalite("France");
+        filters.setPiedFort("Droit");
+        filters.setTailleMin(175);
+        filters.setTailleMax(185);
+        filters.setPoidsMin(70);
+        filters.setPoidsMax(80);
+        filters.setDateNaissanceMin(
+                LocalDate.of(1999, 1, 1)
+        );
+        filters.setDateNaissanceMax(
+                LocalDate.of(2001, 12, 31)
+        );
+
+        PageResponse<JoueurResponse> response =
+                joueurService.getAllJoueurs(filters);
+
+        assertEquals(1, response.getContent().size());
+
+        assertEquals(
+                "JoueurTest",
+                response.getContent()
+                        .getFirst()
+                        .getNom()
+        );
+
+        assertEquals(
+                "Droit",
+                response.getContent()
+                        .getFirst()
+                        .getPiedFort()
+        );
+
+        assertEquals(
+                180,
+                response.getContent()
+                        .getFirst()
+                        .getTaille()
+        );
+
+        assertEquals(
+                76,
+                response.getContent()
+                        .getFirst()
+                        .getPoids()
+        );
+
+        verify(joueurRepository)
+                .findAll(
+                        any(Specification.class),
+                        any(Pageable.class)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldRejectInvalidHeightRange() {
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
+
+        filters.setTailleMin(190);
+        filters.setTailleMax(175);
+
+        InvalidFilterException exception =
+                assertThrows(
+                        InvalidFilterException.class,
+                        () -> joueurService
+                                .getAllJoueurs(filters)
+                );
+
+        assertEquals(
+                "La taille minimale ne doit pas être supérieure "
+                        + "à la taille maximale.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(joueurRepository);
     }
 
     private JoueurRequest request(Long clubId) {

@@ -1,6 +1,7 @@
 package com.football.scouting.joueur.controller;
 
 import com.football.scouting.common.dto.PageResponse;
+import com.football.scouting.joueur.dto.JoueurFilterRequest;
 import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.dto.JoueurResponse;
 import com.football.scouting.joueur.service.JoueurService;
@@ -8,17 +9,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/joueurs")
@@ -41,36 +34,15 @@ public class JoueurController {
     }
 
     @Operation(
-            summary = "Lister, rechercher et filtrer les joueurs"
+            summary = "Lister, rechercher, filtrer et trier les joueurs"
     )
     @GetMapping
     public PageResponse<JoueurResponse> getAllJoueurs(
-            @RequestParam(defaultValue = "0")
-            int page,
-
-            @RequestParam(defaultValue = "10")
-            int size,
-
-            @RequestParam(defaultValue = "nom")
-            String sortBy,
-
-            @RequestParam(defaultValue = "asc")
-            String direction,
-
-            @RequestParam(required = false)
-            String search,
-
-            @RequestParam(required = false)
-            Long clubId
+            @ParameterObject
+            @ModelAttribute
+            JoueurFilterRequest filters
     ) {
-        return joueurService.getAllJoueurs(
-                page,
-                size,
-                sortBy,
-                direction,
-                search,
-                clubId
-        );
+        return joueurService.getAllJoueurs(filters);
     }
 
     @Operation(
