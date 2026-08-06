@@ -2,7 +2,10 @@ package com.football.scouting.joueur.specification;
 
 import com.football.scouting.joueur.dto.JoueurFilterRequest;
 import com.football.scouting.joueur.entity.Joueur;
+import com.football.scouting.rapport.entity.RapportScouting;
 import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
@@ -36,6 +39,30 @@ public final class JoueurSpecification {
 
         LocalDate dateNaissanceMax =
                 filters.getDateNaissanceMax();
+
+        Integer scoreGlobalMin =
+                filters.getScoreGlobalMin();
+
+        Integer scoreGlobalMax =
+                filters.getScoreGlobalMax();
+
+        String recommandationRapport =
+                normalize(
+                        filters.getRecommandationRapport()
+                );
+
+        LocalDate dateRapportMin =
+                filters.getDateRapportMin();
+
+        LocalDate dateRapportMax =
+                filters.getDateRapportMax();
+
+        boolean hasRapportFilters =
+                scoreGlobalMin != null
+                        || scoreGlobalMax != null
+                        || recommandationRapport != null
+                        || dateRapportMin != null
+                        || dateRapportMax != null;
 
         return (root, query, criteriaBuilder) -> {
 
@@ -216,6 +243,123 @@ public final class JoueurSpecification {
                 );
             }
 
+            /*
+             * Filtrage des joueurs selon l'existence
+             * d'au moins un rapport correspondant.
+             */
+            if (hasRapportFilters) {
+
+                Subquery<Long> rapportSubquery =
+                        query.subquery(Long.class);
+
+                Root<RapportScouting> rapportRoot =
+                        rapportSubquery.from(
+                                RapportScouting.class
+                        );
+
+                List<Predicate> rapportPredicates =
+                        new ArrayList<>();
+
+                /*
+                 * Liaison entre le joueur principal
+                 * et le joueur du rapport.
+                 */
+                rapportPredicates.add(
+                        criteriaBuilder.equal(
+                                rapportRoot
+                                        .get("joueur")
+                                        .get("id"),
+                                root.get("id")
+                        )
+                );
+
+                if (scoreGlobalMin != null) {
+                    rapportPredicates.add(
+                            criteriaBuilder
+                                    .greaterThanOrEqualTo(
+                                            rapportRoot
+                                                    .<Integer>get(
+                                                            "scoreGlobal"
+                                                    ),
+                                            scoreGlobalMin
+                                    )
+                    );
+                }
+
+                if (scoreGlobalMax != null) {
+                    rapportPredicates.add(
+                            criteriaBuilder
+                                    .lessThanOrEqualTo(
+                                            rapportRoot
+                                                    .<Integer>get(
+                                                            "scoreGlobal"
+                                                    ),
+                                            scoreGlobalMax
+                                    )
+                    );
+                }
+
+                if (recommandationRapport != null) {
+                    rapportPredicates.add(
+                            criteriaBuilder.equal(
+                                    criteriaBuilder.lower(
+                                            rapportRoot
+                                                    .<String>get(
+                                                            "recommandation"
+                                                    )
+                                    ),
+                                    recommandationRapport
+                                            .toLowerCase(
+                                                    Locale.ROOT
+                                            )
+                            )
+                    );
+                }
+
+                if (dateRapportMin != null) {
+                    rapportPredicates.add(
+                            criteriaBuilder
+                                    .greaterThanOrEqualTo(
+                                            rapportRoot
+                                                    .<LocalDate>get(
+                                                            "dateObservation"
+                                                    ),
+                                            dateRapportMin
+                                    )
+                    );
+                }
+
+                if (dateRapportMax != null) {
+                    rapportPredicates.add(
+                            criteriaBuilder
+                                    .lessThanOrEqualTo(
+                                            rapportRoot
+                                                    .<LocalDate>get(
+                                                            "dateObservation"
+                                                    ),
+                                            dateRapportMax
+                                    )
+                    );
+                }
+
+                rapportSubquery
+                        .select(
+                                rapportRoot.<Long>get("id")
+                        )
+                        .where(
+                                criteriaBuilder.and(
+                                        rapportPredicates.toArray(
+                                                new Predicate[0]
+                                        )
+                                )
+                        );
+
+                predicates.add(
+                        criteriaBuilder.exists(
+                                rapportSubquery
+                        )
+                );
+            }
             return criteriaBuilder.and(
                     predicates.toArray(
                             new Predicate[0]

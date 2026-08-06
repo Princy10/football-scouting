@@ -6,6 +6,8 @@ import com.football.scouting.club.repository.ClubRepository;
 import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.entity.Joueur;
 import com.football.scouting.joueur.repository.JoueurRepository;
+import com.football.scouting.rapport.entity.RapportScouting;
+import com.football.scouting.rapport.repository.RapportScoutingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,8 +62,12 @@ class JoueurControllerIntegrationTest {
     @Autowired
     private ClubRepository clubRepository;
 
+    @Autowired
+    private RapportScoutingRepository rapportScoutingRepository;
+
     @BeforeEach
     void setUp() {
+        rapportScoutingRepository.deleteAll();
         joueurRepository.deleteAll();
         clubRepository.deleteAll();
     }
@@ -770,6 +776,244 @@ class JoueurControllerIntegrationTest {
                                         "La taille minimale ne doit pas "
                                                 + "être supérieure à la "
                                                 + "taille maximale."
+                                )
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldFilterUsingScoutingReports()
+            throws Exception {
+
+        Club realMadrid =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Real Madrid CF")
+                                .pays("Espagne")
+                                .ville("Madrid")
+                                .division("La Liga")
+                                .build()
+                );
+
+        Joueur cible = joueur(realMadrid);
+        cible.setNom("Mbappé");
+        cible.setPrenom("Kylian");
+        cible.setPostePrincipal("Attaquant");
+        cible.setNationalite("France");
+
+        Joueur autreJoueur = joueur(realMadrid);
+        autreJoueur.setNom("Bellingham");
+        autreJoueur.setPrenom("Jude");
+        autreJoueur.setPostePrincipal("Milieu");
+        autreJoueur.setNationalite("Angleterre");
+
+        cible = joueurRepository.save(cible);
+        autreJoueur =
+                joueurRepository.save(autreJoueur);
+
+        /*
+         * Premier rapport correspondant pour Mbappé.
+         */
+        rapportScoutingRepository.save(
+                RapportScouting.builder()
+                        .joueur(cible)
+                        .dateObservation(
+                                LocalDate.of(
+                                        2026,
+                                        5,
+                                        15
+                                )
+                        )
+                        .matchObserve(
+                                "Analyse offensive européenne"
+                        )
+                        .commentaireGeneral(
+                                "Très bonne prestation."
+                        )
+                        .scoreGlobal(88)
+                        .recommandation(
+                                "RECOMMANDE"
+                        )
+                        .scoutName(
+                                "Alice Dupont"
+                        )
+                        .build()
+        );
+
+        /*
+         * Deuxième rapport correspondant pour le même joueur.
+         * Il sert à vérifier que Mbappé ne sera pas dupliqué.
+         */
+        rapportScoutingRepository.save(
+                RapportScouting.builder()
+                        .joueur(cible)
+                        .dateObservation(
+                                LocalDate.of(
+                                        2026,
+                                        5,
+                                        20
+                                )
+                        )
+                        .matchObserve(
+                                "Deuxième analyse"
+                        )
+                        .commentaireGeneral(
+                                "Confirmation du potentiel."
+                        )
+                        .scoreGlobal(90)
+                        .recommandation(
+                                "RECOMMANDE"
+                        )
+                        .scoutName(
+                                "Jean Scout"
+                        )
+                        .build()
+        );
+
+        /*
+         * Rapport d'un autre joueur.
+         */
+        rapportScoutingRepository.save(
+                RapportScouting.builder()
+                        .joueur(autreJoueur)
+                        .dateObservation(
+                                LocalDate.of(
+                                        2026,
+                                        5,
+                                        18
+                                )
+                        )
+                        .matchObserve(
+                                "Analyse du milieu"
+                        )
+                        .commentaireGeneral(
+                                "Bonne maîtrise technique."
+                        )
+                        .scoreGlobal(92)
+                        .recommandation(
+                                "RECOMMANDE"
+                        )
+                        .scoutName(
+                                "Alice Dupont"
+                        )
+                        .build()
+        );
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param(
+                                        "search",
+                                        "kylian"
+                                )
+                                .param(
+                                        "clubId",
+                                        realMadrid
+                                                .getId()
+                                                .toString()
+                                )
+                                .param(
+                                        "poste",
+                                        "Attaquant"
+                                )
+                                .param(
+                                        "nationalite",
+                                        "France"
+                                )
+                                .param(
+                                        "scoreGlobalMin",
+                                        "80"
+                                )
+                                .param(
+                                        "scoreGlobalMax",
+                                        "90"
+                                )
+                                .param(
+                                        "recommandationRapport",
+                                        "recommande"
+                                )
+                                .param(
+                                        "dateRapportMin",
+                                        "2026-05-01"
+                                )
+                                .param(
+                                        "dateRapportMax",
+                                        "2026-05-31"
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(
+                        jsonPath("$.content.length()")
+                                .value(1)
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nom")
+                                .value("Mbappé")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].prenom")
+                                .value("Kylian")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].postePrincipal")
+                                .value("Attaquant")
+                )
+                .andExpect(
+                        jsonPath("$.content[0].nationalite")
+                                .value("France")
+                )
+                .andExpect(
+                        jsonPath("$.totalElements")
+                                .value(1)
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldReturn400_whenReportScoreRangeIsInvalid()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param(
+                                        "scoreGlobalMin",
+                                        "90"
+                                )
+                                .param(
+                                        "scoreGlobalMax",
+                                        "70"
+                                )
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "Le score global minimal ne doit "
+                                                + "pas être supérieur au "
+                                                + "score global maximal."
+                                )
+                );
+    }
+
+    @Test
+    void getAllJoueurs_shouldReturn400_whenReportDateRangeIsInvalid()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/joueurs")
+                                .param(
+                                        "dateRapportMin",
+                                        "2026-06-01"
+                                )
+                                .param(
+                                        "dateRapportMax",
+                                        "2026-05-01"
+                                )
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "La date minimale du rapport ne "
+                                                + "doit pas être postérieure "
+                                                + "à la date maximale."
                                 )
                 );
     }

@@ -45,4 +45,16 @@ public class JoueurFilterRequest {
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate dateNaissanceMax;
+
+    private Integer scoreGlobalMin;
+
+    private Integer scoreGlobalMax;
+
+    private String recommandationRapport;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate dateRapportMin;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate dateRapportMax;
 }

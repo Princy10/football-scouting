@@ -450,4 +450,80 @@ class JoueurServiceTest {
                 .pays("Angleterre")
                 .build();
     }
+
+    @Test
+    void getAllJoueurs_shouldRejectInvalidScoreRange() {
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
+
+        filters.setScoreGlobalMin(90);
+        filters.setScoreGlobalMax(70);
+
+        InvalidFilterException exception =
+                assertThrows(
+                        InvalidFilterException.class,
+                        () -> joueurService
+                                .getAllJoueurs(filters)
+                );
+
+        assertEquals(
+                "Le score global minimal ne doit pas être "
+                        + "supérieur au score global maximal.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(joueurRepository);
+    }
+
+    @Test
+    void getAllJoueurs_shouldRejectScoreAbove100() {
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
+
+        filters.setScoreGlobalMin(110);
+
+        InvalidFilterException exception =
+                assertThrows(
+                        InvalidFilterException.class,
+                        () -> joueurService
+                                .getAllJoueurs(filters)
+                );
+
+        assertEquals(
+                "Le score global minimal doit être compris "
+                        + "entre 0 et 100.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(joueurRepository);
+    }
+
+    @Test
+    void getAllJoueurs_shouldRejectInvalidReportDateRange() {
+        JoueurFilterRequest filters =
+                new JoueurFilterRequest();
+
+        filters.setDateRapportMin(
+                LocalDate.of(2026, 6, 1)
+        );
+
+        filters.setDateRapportMax(
+                LocalDate.of(2026, 5, 1)
+        );
+
+        InvalidFilterException exception =
+                assertThrows(
+                        InvalidFilterException.class,
+                        () -> joueurService
+                                .getAllJoueurs(filters)
+                );
+
+        assertEquals(
+                "La date minimale du rapport ne doit pas être "
+                        + "postérieure à la date maximale.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(joueurRepository);
+    }
 }

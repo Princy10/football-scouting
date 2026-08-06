@@ -115,6 +115,53 @@ public class JoueurService {
                             + "être postérieure à la date maximale."
             );
         }
+
+        validateScore(
+                filters.getScoreGlobalMin(),
+                "Le score global minimal"
+        );
+
+        validateScore(
+                filters.getScoreGlobalMax(),
+                "Le score global maximal"
+        );
+
+        if (filters.getScoreGlobalMin() != null
+                && filters.getScoreGlobalMax() != null
+                && filters.getScoreGlobalMin()
+                > filters.getScoreGlobalMax()) {
+
+            throw new InvalidFilterException(
+                    "Le score global minimal ne doit pas être "
+                            + "supérieur au score global maximal."
+            );
+        }
+
+        if (filters.getDateRapportMin() != null
+                && filters.getDateRapportMax() != null
+                && filters.getDateRapportMin().isAfter(
+                filters.getDateRapportMax()
+        )) {
+
+            throw new InvalidFilterException(
+                    "La date minimale du rapport ne doit pas être "
+                            + "postérieure à la date maximale."
+            );
+        }
+    }
+
+    private void validateScore(
+            Integer score,
+            String fieldName
+    ) {
+        if (score != null
+                && (score < 0 || score > 100)) {
+
+            throw new InvalidFilterException(
+                    fieldName
+                            + " doit être compris entre 0 et 100."
+            );
+        }
     }
 
     private void validatePositiveValue(
