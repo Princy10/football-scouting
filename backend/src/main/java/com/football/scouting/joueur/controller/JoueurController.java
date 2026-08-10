@@ -4,6 +4,8 @@ import com.football.scouting.common.dto.PageResponse;
 import com.football.scouting.joueur.dto.JoueurFilterRequest;
 import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.dto.JoueurResponse;
+import com.football.scouting.joueur.dto.profile.JoueurProfileResponse;
+import com.football.scouting.joueur.service.JoueurProfileService;
 import com.football.scouting.joueur.service.JoueurService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 public class JoueurController {
 
     private final JoueurService joueurService;
+
+    private final JoueurProfileService joueurProfileService;
 
     @Operation(summary = "Créer un joueur")
     @PostMapping
@@ -74,5 +78,16 @@ public class JoueurController {
             @PathVariable Long id
     ) {
         joueurService.deleteJoueur(id);
+    }
+
+    @Operation(
+            summary = "Récupérer le profil détaillé d'un joueur"
+    )
+    @GetMapping("/{id}/profil")
+    public JoueurProfileResponse getJoueurProfile(
+            @PathVariable Long id
+    ) {
+        return joueurProfileService
+                .getProfile(id);
     }
 }

@@ -18,6 +18,11 @@ public interface NoteCritereRepository
             Long rapportId
     );
 
+    List<NoteCritere>
+    findByRapport_IdInOrderByRapport_IdAscIdAsc(
+            List<Long> rapportIds
+    );
+
     @Query("""
             SELECT AVG(note.noteSur100)
             FROM NoteCritere note

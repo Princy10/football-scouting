@@ -6,6 +6,8 @@ import com.football.scouting.club.repository.ClubRepository;
 import com.football.scouting.joueur.dto.JoueurRequest;
 import com.football.scouting.joueur.entity.Joueur;
 import com.football.scouting.joueur.repository.JoueurRepository;
+import com.football.scouting.note.entity.NoteCritere;
+import com.football.scouting.note.repository.NoteCritereRepository;
 import com.football.scouting.rapport.entity.RapportScouting;
 import com.football.scouting.rapport.repository.RapportScoutingRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,8 +67,12 @@ class JoueurControllerIntegrationTest {
     @Autowired
     private RapportScoutingRepository rapportScoutingRepository;
 
+    @Autowired
+    private NoteCritereRepository noteCritereRepository;
+
     @BeforeEach
     void setUp() {
+        noteCritereRepository.deleteAll();
         rapportScoutingRepository.deleteAll();
         joueurRepository.deleteAll();
         clubRepository.deleteAll();
@@ -1014,6 +1020,154 @@ class JoueurControllerIntegrationTest {
                                         "La date minimale du rapport ne "
                                                 + "doit pas être postérieure "
                                                 + "à la date maximale."
+                                )
+                );
+    }
+
+    @Test
+    void getJoueurProfile_shouldReturnCompleteProfile()
+            throws Exception {
+
+        Club club =
+                clubRepository.save(
+                        Club.builder()
+                                .nom("Real Madrid CF")
+                                .pays("Espagne")
+                                .ville("Madrid")
+                                .division("La Liga")
+                                .build()
+                );
+
+        Joueur joueur = joueur(club);
+        joueur.setNom("Mbappé");
+        joueur.setPrenom("Kylian");
+        joueur.setNationalite("France");
+        joueur.setPostePrincipal("Attaquant");
+
+        joueur =
+                joueurRepository.save(joueur);
+
+        RapportScouting rapport =
+                rapportScoutingRepository.save(
+                        RapportScouting.builder()
+                                .joueur(joueur)
+                                .dateObservation(
+                                        LocalDate.of(
+                                                2026,
+                                                5,
+                                                20
+                                        )
+                                )
+                                .matchObserve(
+                                        "Real Madrid - Barcelona"
+                                )
+                                .commentaireGeneral(
+                                        "Très bonne prestation"
+                                )
+                                .recommandation(
+                                        "RECOMMANDE"
+                                )
+                                .scoreGlobal(90)
+                                .scoutName(
+                                        "Alice Dupont"
+                                )
+                                .build()
+                );
+
+        noteCritereRepository.save(
+                NoteCritere.builder()
+                        .rapport(rapport)
+                        .critere("Finition")
+                        .noteSur100(92)
+                        .build()
+        );
+
+        noteCritereRepository.save(
+                NoteCritere.builder()
+                        .rapport(rapport)
+                        .critere("Vitesse")
+                        .noteSur100(88)
+                        .build()
+        );
+
+        mockMvc.perform(
+                        get(
+                                "/api/joueurs/{id}/profil",
+                                joueur.getId()
+                        )
+                )
+                .andExpect(status().isOk())
+
+                .andExpect(
+                        jsonPath("$.joueur.nom")
+                                .value("Mbappé")
+                )
+
+                .andExpect(
+                        jsonPath("$.club.nom")
+                                .value(
+                                        "Real Madrid CF"
+                                )
+                )
+
+                .andExpect(
+                        jsonPath(
+                                "$.statistiques.nombreRapports"
+                        )
+                                .value(1)
+                )
+
+                .andExpect(
+                        jsonPath(
+                                "$.statistiques.nombreNotes"
+                        )
+                                .value(2)
+                )
+
+                .andExpect(
+                        jsonPath(
+                                "$.statistiques.scoreMoyen"
+                        )
+                                .value(90.0)
+                )
+
+                .andExpect(
+                        jsonPath(
+                                "$.criteres.length()"
+                        )
+                                .value(2)
+                )
+
+                .andExpect(
+                        jsonPath(
+                                "$.rapports.length()"
+                        )
+                                .value(1)
+                )
+
+                .andExpect(
+                        jsonPath(
+                                "$.rapports[0].notes.length()"
+                        )
+                                .value(2)
+                );
+    }
+
+    @Test
+    void getJoueurProfile_shouldReturn404_whenPlayerDoesNotExist()
+            throws Exception {
+
+        mockMvc.perform(
+                        get(
+                                "/api/joueurs/{id}/profil",
+                                999999L
+                        )
+                )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value(
+                                        "Joueur introuvable avec l'id : 999999"
                                 )
                 );
     }
